@@ -319,7 +319,7 @@ html.sa #app,html.sa #sheet,html.sa #menu{height:var(--vh);top:0;bottom:auto}
     <section class="tab" id="t-home" aria-label="Inicio"></section>
     <section class="tab" id="t-lib" aria-label="Biblioteca" hidden></section>
     <section class="tab" id="t-search" aria-label="Buscar" hidden>
-      <h1>Buscar</h1><label class="field"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input id="qi" type="search" placeholder="Artistas, canciones, álbumes y listas" autocomplete="off" enterkeyhint="search"></label><div id="sr"></div>
+      <h1>Buscar</h1><label class="field"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input id="qi" type="search" placeholder="Artistas, canciones, álbumes y listas" autocomplete="off" enterkeyhint="search"><button type="button" id="qx" class="qx" hidden aria-label="Borrar texto"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="currentColor" stroke="none" opacity=".45"/><path d="M9 9l6 6M15 9l-6 6" stroke="#fff"/></svg></button></label><div id="sr"></div>
     </section>
     <section class="tab" id="t-stats" aria-label="Estadísticas" hidden></section>
     <section id="push" aria-label="Detalle"></section>
@@ -366,6 +366,17 @@ img{-webkit-user-drag:none}
 /* letras: traducción */
 #ly .tr{display:block;font-size:.52em;font-weight:500;line-height:1.25;margin-top:5px;opacity:.8;font-family:-apple-system,system-ui,sans-serif}
 #ly .trt{margin:0 0 16px}#ly .trt button{font:600 13px/1 -apple-system,system-ui,sans-serif;padding:9px 13px;border-radius:14px;background:rgba(127,127,127,.25);color:inherit}
+/* buscador: borrar y recientes */
+.field input::-webkit-search-cancel-button{-webkit-appearance:none;display:none}
+.qx{flex:none;width:30px;height:30px;display:grid;place-items:center;color:var(--l2)}.qx[hidden]{display:none}.qx svg{width:20px;stroke-width:2.2}
+.hh{display:flex;justify-content:space-between;align-items:center}.hh button{color:var(--acc);font-size:15px;font-weight:600;padding:6px 2px}
+.hq{display:flex;align-items:center;gap:12px;padding:6px 0 6px 2px;border-bottom:.5px solid var(--sep)}.hq svg{width:20px;flex:none;color:var(--l2)}
+.hq b{flex:1;min-width:0;font-weight:500;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hq .x{width:40px;height:40px;display:grid;place-items:center;color:var(--l2)}.hq .x svg{width:18px}
+/* portada de lista */
+#qm-dlg .cvr{display:flex;gap:12px;align-items:center}
+#qm-dlg .cvb{width:84px;height:84px;flex:none;border-radius:16px;background:#ececf0;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#6c6c70;font-size:12px;font-weight:600}
+#qm-dlg .cvb svg{width:26px}#qm-dlg .cvb img{width:100%;height:100%;object-fit:cover}
 /* rendimiento: sin animaciones infinitas ni desenfoques gigantes */
 #glow::before,#glow::after{animation:none!important;filter:none!important}
 #sheet:not(.pz) #art img{animation:none!important}
@@ -424,7 +435,7 @@ const I={play:ic('<path d="M7 4.5v15l13-7.5z"/>',1),pause:ic('<path d="M6.5 4.5h
 
 /* ---------- Spotify: OAuth PKCE ---------- */
 const CID='d637a2a2fb46439bb99536eb38307806',RED=location.origin+location.pathname,TK='marginalia.spotify.token';
-const SC='streaming user-read-email user-read-private user-read-playback-state user-modify-playback-state user-read-recently-played playlist-read-private playlist-modify-private playlist-modify-public user-library-read user-library-modify';
+const SC='streaming user-read-email user-read-private user-read-playback-state user-modify-playback-state user-read-recently-played playlist-read-private playlist-modify-private playlist-modify-public user-library-read user-library-modify ugc-image-upload';
 const b64=b=>btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 async function login(){const v=b64(crypto.getRandomValues(new Uint8Array(48))),ch=b64(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(v)));
  localStorage.setItem('marginalia.pkce',v);localStorage.setItem('margen.sc',SC);
@@ -658,13 +669,29 @@ async function open(key){
 const closePush=()=>$('#push').classList.remove('open');
 let st;
 async function search(q){
-  const s=$('#sr');if(!q.trim()){s.innerHTML='';return}
+  const s=$('#sr');if(!q.trim()){drawHist();return}
   try{const r=await api('/search?type=track,album,playlist,artist&limit=10&q='+encodeURIComponent(q));
    const ar=(r.artists&&r.artists.items||[]).filter(x=>x&&x.id).slice(0,3).map(x=>coll('ar',x,'Artista')).filter(Boolean),t=(r.tracks&&r.tracks.items||[]).map(x=>mk(x)).filter(Boolean),al=(r.albums&&r.albums.items||[]).map(x=>coll('al',x,(x.artists||[]).map(a=>a.name).join(', '))).filter(Boolean),pl=(r.playlists&&r.playlists.items||[]).map(x=>x&&coll('pl',x,(x.owner&&x.owner.display_name)||'')).filter(Boolean);
    s.innerHTML=(ar.length?`<h2>Artistas</h2>${ar.map(crow).join('')}`:'')+(t.length?`<h2>Canciones</h2>${list(t,'s')}`:'')+(al.length?`<h2>Álbumes</h2>${al.map(crow).join('')}`:'')+(pl.length?`<h2>Listas</h2>${pl.map(crow).join('')}`:'')||`<div class="empty">Sin resultados para “${esc(q)}”.</div>`}
   catch(e){s.innerHTML='<div class="empty">No se pudo buscar. Inténtalo de nuevo.</div>'}
 }
-$('#qi').addEventListener('input',e=>{clearTimeout(st);st=setTimeout(()=>search(e.target.value),350)});
+const qi=$('#qi'),qx=$('#qx'),sr=$('#sr');
+const hget=()=>{try{return JSON.parse(localStorage.getItem('qm.hist')||'[]')}catch(e){return []}};
+const hset=a=>{try{localStorage.setItem('qm.hist',JSON.stringify(a))}catch(e){}};
+function saveQ(q){q=(q||'').trim();if(q.length<2)return;hset([q,...hget().filter(x=>x.toLowerCase()!==q.toLowerCase())].slice(0,20))}
+function drawHist(){const h=hget();sr.innerHTML=h.length?`<div class="hh"><h2>Recientes</h2><button data-hc>Borrar todo</button></div>`+h.map((q,i)=>`<div class="hq" data-hq="${i}" role="button" tabindex="0">${ic('<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>')}<b>${esc(q)}</b><button class="x" data-hd="${i}" aria-label="Eliminar">${ic('<path d="M7 7l10 10M17 7L7 17"/>')}</button></div>`).join(''):''}
+const syncX=()=>{qx.hidden=!qi.value};
+qi.addEventListener('input',()=>{syncX();clearTimeout(st);st=setTimeout(()=>search(qi.value),350)});
+qi.addEventListener('keydown',e=>{if(e.key==='Enter'){saveQ(qi.value);qi.blur()}});
+qi.addEventListener('change',()=>saveQ(qi.value));
+qx.addEventListener('mousedown',e=>e.preventDefault());
+qx.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();qi.value='';syncX();clearTimeout(st);search('');qi.focus()});
+sr.addEventListener('click',e=>{
+  if(e.target.closest('[data-hc]')){e.stopPropagation();hset([]);drawHist();return}
+  const d=e.target.closest('[data-hd]');if(d){e.stopPropagation();const a=hget();a.splice(+d.dataset.hd,1);hset(a);drawHist();return}
+  const h=e.target.closest('[data-hq]');if(h){e.stopPropagation();const q=hget()[+h.dataset.hq];if(q){qi.value=q;syncX();clearTimeout(st);search(q);saveQ(q)}return}
+  if(qi.value.trim())saveQ(qi.value)});
+drawHist();
 const TO=['home','lib','search','stats'];let tl='home';
 function pgIn(n){const e=$('#t-'+n);e.style.setProperty('--d',(TO.indexOf(n)>=TO.indexOf(tl)?22:-22)+'px');tl=n;e.classList.remove('in');void e.offsetWidth;e.classList.add('in');hdr(e,e.scrollTop)}
 function tab(n){closePush();if(n==='stats')drawStats();['home','lib','search','stats'].forEach(k=>$('#t-'+k).hidden=k!==n);$$('.tb').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===n)));pgIn(n)}
@@ -891,11 +918,31 @@ async function mkList(name){const body=JSON.stringify({name,public:false,descrip
  try{return await api('/me/playlists',{method:'POST',body})}catch(e){if(e&&(e.status===404||e.status===405)){const u=await getMe();return api('/users/'+u.id+'/playlists',{method:'POST',body})}throw e}}
 async function addTo(id,t){const body=JSON.stringify({uris:[t.uri]});
  try{await api('/playlists/'+id+'/items',{method:'POST',body})}catch(e){await api('/playlists/'+id+'/tracks',{method:'POST',body})}}
+function prepCover(file){return new Promise((res,rej)=>{const im=new Image(),u=URL.createObjectURL(file);
+ im.onload=()=>{try{const sz=Math.min(im.naturalWidth,im.naturalHeight),sx=(im.naturalWidth-sz)/2,sy=(im.naturalHeight-sz)/2;
+  const mk2=(px,q)=>{const c=document.createElement('canvas');c.width=c.height=px;c.getContext('2d').drawImage(im,sx,sy,sz,sz,0,0,px,px);return c.toDataURL('image/jpeg',q)};
+  let px=640,q=.85,d=mk2(px,q);while(d.length>230000&&(q>.45||px>300)){if(q>.45)q-=.1;else px=Math.round(px*.8);d=mk2(px,q)}
+  const out={b64:d.split(',')[1],preview:d,thumb:mk2(160,.7)};URL.revokeObjectURL(u);res(out)}catch(e){rej(e)}};
+ im.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('img'))};im.src=u})}
+async function setCover(id,b64){const r=await fetch('https://api.spotify.com/v1/playlists/'+id+'/images',{method:'PUT',headers:{Authorization:'Bearer '+await token(),'Content-Type':'image/jpeg'},body:b64});if(!r.ok)throw r}
+function askList(){return new Promise(res=>{
+ const o=document.createElement('div');o.id='qm-dlg';let cv=null;
+ o.innerHTML=`<div class="box"><h3>Nueva lista</h3><div class="cvr"><button type="button" class="cvb" data-pick aria-label="Elegir portada">${ic('<rect x="3.5" y="5.5" width="17" height="13" rx="2.5"/><circle cx="12" cy="12" r="3.2"/>')}<span>Portada</span></button><input type="text" maxlength="100" placeholder="Nombre de la lista" autocomplete="off" autocapitalize="sentences"></div><input type="file" accept="image/*" hidden><div class="bt"><button data-x>Cancelar</button><button data-ok class="p">Crear</button></div></div>`;
+ document.body.appendChild(o);const inp=o.querySelector('input[type=text]'),fi=o.querySelector('input[type=file]'),pb=o.querySelector('[data-pick]');
+ try{inp.focus()}catch(e){}
+ const done=v=>{o.remove();res(v)};
+ fi.onchange=async()=>{const f=fi.files&&fi.files[0];if(!f)return;try{cv=await prepCover(f);pb.innerHTML=`<img src="${cv.preview}" alt="">`}catch(e){toast('No se pudo leer esa imagen')}};
+ o.addEventListener('click',e=>{if(e.target===o||e.target.closest('[data-x]'))done(null);else if(e.target.closest('[data-pick]'))fi.click();else if(e.target.closest('[data-ok]')){const n=inp.value.trim();if(n)done({name:n,cover:cv});else inp.focus()}});
+ inp.addEventListener('keydown',e=>{if(e.key==='Enter'){const n=inp.value.trim();if(n)done({name:n,cover:cv})}})})}
 async function newList(t){
- const name=await ask('Nueva lista','Nombre de la lista','Crear');if(!name)return null;
- try{const p=await mkList(name);const c=coll('pl',p,'Tú');if(c){D.pl.unshift(c);drawLib()}
-  if(t){await addTo(p.id,t);toast('Añadida a «'+name+'»')}else toast('Lista «'+name+'» creada');return p}
- catch(e){let m='';try{const j=await e.json();m=j&&j.error&&j.error.message||''}catch(_){}toast(e&&e.status===403?'Spotify rechazó crear la lista (403'+(m?': '+m:'')+')':'No se pudo crear la lista'+(e&&e.status?' ('+e.status+(m?': '+m:'')+')':''));return null}}
+ const r=await askList();if(!r)return null;const name=r.name,cv=r.cover;let p;
+ try{p=await mkList(name)}
+ catch(e){let m='';try{const j=await e.json();m=j&&j.error&&j.error.message||''}catch(_){}toast(e&&e.status===403?'Spotify rechazó crear la lista (403'+(m?': '+m:'')+')':'No se pudo crear la lista'+(e&&e.status?' ('+e.status+(m?': '+m:'')+')':''));return null}
+ const c=coll('pl',p,'Tú');if(c){if(cv)c.cover=cv.thumb;D.pl.unshift(c);drawLib()}
+ let msg=t?'Añadida a «'+name+'»':'Lista «'+name+'» creada';
+ if(t){try{await addTo(p.id,t)}catch(e){msg='Lista creada, pero no se pudo añadir la canción'}}
+ if(cv){try{await setCover(p.id,cv.b64)}catch(e){msg+=' · no se pudo subir la portada'+(e&&(e.status===401||e.status===403)?' (vuelve a conectar Spotify)':'')}}
+ toast(msg);return p}
 async function addPicker(t){
  const M=$('#menu'),mc=$('#mc');
  mc.innerHTML=`<div class="hd"><img src="${esc(t.sm)}" alt=""><div class="m"><b>Añadir a una lista</b><span>${esc(t.name)}</span></div></div><button class="mi" data-new>Nueva lista${NI}</button><div class="scl" id="pls"><div class="mi" style="color:var(--l2)">Cargando…</div></div>`;
@@ -950,7 +997,7 @@ async function go(){const c=jl('qm.c',null);if(c){D.liked=c.l;D.total=c.n;D.pl=c
 async function init(){
   const code=new URLSearchParams(location.search).get('code');
   if(code){history.replaceState(null,'',RED);try{saveTok(await tokReq({grant_type:'authorization_code',code,redirect_uri:RED,code_verifier:localStorage.getItem('marginalia.pkce')}))}catch(e){connectScreen('No se pudo conectar con Spotify. Inténtalo otra vez.');return}}
-  if(tok()&&localStorage.getItem('margen.sc')!==SC){localStorage.removeItem(TK);connectScreen('Q-Music ahora necesita permisos nuevos (crear y editar listas). Vuelve a conectar tu cuenta.');return}
+  if(tok()&&localStorage.getItem('margen.sc')!==SC){localStorage.removeItem(TK);connectScreen('Q-Music ahora necesita permisos nuevos (crear listas y cambiar su portada). Vuelve a conectar tu cuenta.');return}
   if(!tok()){connectScreen();return}
   try{await go()}catch(e){connectScreen('No se pudo cargar tu biblioteca. Vuelve a conectar.')}
 }
