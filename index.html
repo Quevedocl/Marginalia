@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Q-Music">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="margen-icon-1024.png">
 <link rel="icon" href="margen-icon-1024.png">
 <style>
@@ -201,6 +201,10 @@ h2{font:600 12px/1 var(--f);letter-spacing:.14em;text-transform:uppercase;color:
 .ta{background:none;border:0;border-radius:0;border-bottom:.5px solid var(--sep);padding:12px 0}.ta i{background:color-mix(in srgb,var(--acc) 16%,transparent)}
 #rad{background:rgba(255,255,255,.6)}#rad .ring{border-color:rgba(11,11,12,.15)}#rad .o.on{background:var(--acc);color:#fff}
 .sw{border-radius:0}.sw.r{background:var(--acc)}.sw.l{background:#0b0b0c}
+body::before{content:"";position:fixed;top:0;left:0;right:0;height:calc(env(safe-area-inset-top) + 30px);z-index:25;pointer-events:none;background:linear-gradient(color-mix(in srgb,var(--acc) 72%,#000),transparent)}
+.tab,#push,#q,#ly{overscroll-behavior-y:none}
+.tab,#push{padding-bottom:calc(env(safe-area-inset-bottom) + 110px)}
+#app.pm .tab,#app.pm #push{padding-bottom:28px}
 </style></head><body>
 <div id="app" class="off">
   <main id="main">
@@ -261,7 +265,7 @@ async function token(){let o=tok();if(!o)return null;if(Date.now()>o.e){try{o=sa
 const api=async(p,o={})=>{const r=await fetch('https://api.spotify.com/v1'+p,{...o,headers:{Authorization:'Bearer '+await token(),'Content-Type':'application/json'}});if(!r.ok)throw r;return r.status===204?null:r.json().catch(()=>null)};
 
 /* ---------- Datos ---------- */
-const R=new Map(),L={},C=new Map(),liked=new Set(),D={liked:[],total:0,pl:[],al:[],recent:[]};
+const R=new Map(),L={},C=new Map(),liked=new Set(),D={liked:[],total:0,pl:[],al:[],recent:[],rec:[],redis:[]};
 const pick=(a,big)=>{a=a||[];return big?(a[0]||{}).url||'':(a[1]||a[0]||{}).url||''};
 const mk=(x,al)=>{if(!x||!x.id||x.type==='episode')return null;const a=x.album||al||{};const t={id:x.id,uri:x.uri||'spotify:track:'+x.id,name:x.name,artist:(x.artists||[]).map(a=>a.name).join(', '),album:a.name||'',dur:x.duration_ms||0,sm:pick(a.images),lg:pick(a.images,1)};R.set(t.id,t);return t};
 const coll=(kind,x,sub)=>{if(!x||!x.id)return null;const c={kind,id:x.id,uri:x.uri,name:x.name,sub,cover:pick(x.images,1)};C.set(kind+':'+x.id,c);return c};
@@ -286,7 +290,7 @@ function onState(s){
 /* Un solo punto de actualización: mini-reproductor, hoja, lista y pantalla de bloqueo */
 function paint(ch){
   const t=P.t,A=$('#app');if(!t)return;
-  const m=$('#mini');m.hidden=false;
+  const m=$('#mini');m.hidden=false;A.classList.add('pm');
   if(m.dataset.id!==t.id){m.dataset.id=t.id;m.innerHTML=`<img src="${esc(t.sm)}" alt=""><div class="m"><b>${esc(t.name)}</b><span>${esc(t.artist)}</span></div><button class="ic" data-pp aria-label="Reproducir o pausar"></button><button class="ic" data-nx aria-label="Siguiente">${I.next}</button>`}
   $('[data-pp]',m).innerHTML=P.playing?I.pause:I.play;
   $('#np-img').src=t.lg;$('#sheet').style.setProperty('--bg',`url("${t.lg}")`);$('#np-t').textContent=t.name;$('#np-a').textContent=t.artist+(t.album?' — '+t.album:'');
@@ -342,12 +346,22 @@ const row=(t,k,i)=>`<div class="row${P.t&&P.t.id===t.id?' on':''}" data-id="${t.
 const list=(a,k)=>{L[k]=a;return a.map((t,i)=>row(t,k,i)).join('')};
 const crow=c=>`<div class="lrow" data-open="${c.kind}:${c.id}" role="button" tabindex="0"><img src="${esc(c.cover)}" alt="" loading="lazy"><div class="m"><b>${esc(c.name)}</b><span>${esc(c.sub)}</span></div>${I.chev}</div>`;
 const card=(c,i)=>`<button class="card" data-open="${c.kind}:${c.id}"><img src="${esc(c.cover)}" alt="" loading="lazy"><b>${esc(c.name)}</b><span>${esc(c.sub)}</span></button>`;
+const tcards=(a,k)=>{L[k]=a;return`<div class="hs">${a.map((t,i)=>`<button class="card" data-id="${t.id}" data-l="${k}" data-i="${i}"><img src="${esc(t.lg)}" alt="" loading="lazy"><b>${esc(t.name)}</b><span>${esc(t.artist)}</span></button>`).join('')}</div>`};
 function drawHome(){
-  L.rc=D.recent;
-  $('#t-home').innerHTML=`<h1>Inicio</h1>`+(D.recent.length?`<h2 style="margin-top:6px">Escuchado recientemente</h2><div class="hs">${D.recent.slice(0,12).map((t,i)=>`<button class="card" data-id="${t.id}" data-l="rc" data-i="${i}"><img src="${esc(t.lg)}" alt="" loading="lazy"><b>${esc(t.name)}</b><span>${esc(t.artist)}</span></button>`).join('')}</div>`:'')
-  +(D.pl.length?`<h2>Tus listas</h2><div class="hs">${D.pl.slice(0,12).map(card).join('')}</div>`:'')
-  +(D.liked.length?`<h2>Favoritas recientes</h2>${list(D.liked.slice(0,10),'hl')}`:'');
+  const rc=i=>D.rec[i]?`<h2>Más de ${esc(D.rec[i].n)}</h2>${tcards(D.rec[i].t,'m'+i)}`:'';
+  $('#t-home').innerHTML=`<h1>Inicio</h1>`+(D.recent.length?`<h2 style="margin-top:6px">Escuchado recientemente</h2>${tcards(D.recent.slice(0,12),'rc')}`:'')+rc(0)
+  +(D.pl.length?`<h2>Tus listas</h2><div class="hs">${D.pl.slice(0,12).map(card).join('')}</div>`:'')+rc(1)
+  +(D.redis.length?`<h2>Redescubre</h2>${list(D.redis,'rd')}`:'')
+  +(D.liked.length?`<h2>Favoritas recientes</h2>${list(D.liked.slice(0,10),'hl')}`:'')+rc(2)+rc(3)
+  +(D.al.length?`<h2>Tus álbumes</h2><div class="hs">${D.al.slice(0,12).map(card).join('')}</div>`:'');
 }
+/* Recomendaciones locales según lo que escuchas */
+function topArt(){const c={},add=(a,w)=>{const n=(a||'').split(',')[0].trim();if(n)c[n]=(c[n]||0)+w};H.filter(h=>h.ts>Date.now()-2592e6).forEach(h=>add(h.artist,3));D.recent.forEach(t=>add(t.artist,2));D.liked.slice(0,100).forEach(t=>add(t.artist,1));return Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,4).map(x=>x[0])}
+async function drawRec(){const names=topArt(),seen=new Set([...D.liked,...D.recent].map(t=>t.id));
+ const rs=await Promise.all(names.map(n=>api('/search?type=track&limit=10&q='+encodeURIComponent('artist:"'+n+'"')).catch(()=>null)));
+ D.rec=names.map((n,i)=>({n,t:((rs[i]&&rs[i].tracks&&rs[i].tracks.items)||[]).map(x=>mk(x)).filter(t=>t&&!seen.has(t.id))})).filter(r=>r.t.length>2);
+ D.redis=D.liked.slice(15).filter(t=>!H.some(h=>h.id===t.id)).sort(()=>Math.random()-.5).slice(0,8);
+ const y=$('#t-home').scrollTop;drawHome();$('#t-home').scrollTop=y}
 function drawLib(){
   $('#t-lib').innerHTML=`<h1>Biblioteca</h1><div class="lrow" data-open="liked:"><div class="hrt">${I.heartF}</div><div class="m"><b>Favoritas</b><span>${D.total} canciones</span></div>${I.chev}</div>`
   +(D.pl.length?`<h2>Listas</h2>${D.pl.map(crow).join('')}`:'')+(D.al.length?`<h2>Álbumes</h2>${D.al.map(crow).join('')}`:'');
@@ -465,7 +479,7 @@ async function story(t){toast('Creando imagen…');try{
  if(navigator.canShare&&navigator.canShare({files:[f]}))await navigator.share({files:[f]});else{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='q-music-story.png';a.click()}
 }catch(e){if(!e||e.name!=='AbortError')toast('No se pudo crear la imagen')}}
 /* Dock flotante: se oculta al hacer scroll y reaparece al detenerte */
-(()=>{const A=$('#app'),y=new WeakMap();let t;document.addEventListener('scroll',e=>{const s=e.target;if(!s.classList||!(s.classList.contains('tab')||s.id==='push'))return;const v=s.scrollTop,d=v-(y.get(s)||0);y.set(s,v);if(d>6&&v>40)A.classList.add('dh');else if(d<-6)A.classList.remove('dh');clearTimeout(t);t=setTimeout(()=>A.classList.remove('dh'),700)},true)})();
+(()=>{const A=$('#app'),y=new WeakMap();let t;document.addEventListener('scroll',e=>{const s=e.target;if(!s.classList||!(s.classList.contains('tab')||s.id==='push'))return;const v=s.scrollTop;if(v<0||v>s.scrollHeight-s.clientHeight+1)return;const d=v-(y.get(s)||0);y.set(s,v);if(d>6&&v>40)A.classList.add('dh');else if(d<-6)A.classList.remove('dh');clearTimeout(t);t=setTimeout(()=>A.classList.remove('dh'),700)},true)})();
 /* Menú radial: mantén pulsado y desliza (arriba: cola · derecha: favorita · izquierda: artista) */
 (()=>{let T,o=null,box=null,dir='',sup=false;
  const D=[['u',0,-1,'A continuación',I.next2],['r',1,0,'Favorita',I.heart],['l',-1,0,'Artista',ic('<circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/>')]];
@@ -519,7 +533,7 @@ async function go(){
   D.pl=pl.items.filter(Boolean).map(p=>coll('pl',p,(p.owner&&p.owner.display_name)||'')).filter(Boolean);
   D.al=al.items.map(i=>i.album&&coll('al',i.album,(i.album.artists||[]).map(a=>a.name).join(', '))).filter(Boolean);
   const seen=new Set();D.recent=rc.items.map(i=>mk(i.track)).filter(t=>t&&!seen.has(t.id)&&seen.add(t.id));
-  $('#app').classList.remove('off');drawHome();drawLib();startPlayer();
+  $('#app').classList.remove('off');drawHome();drawLib();startPlayer();drawRec().catch(()=>{});
   (async()=>{let o=50;while(D.liked.length<D.total&&o<500){const r=await api('/me/tracks?limit=50&offset='+o).catch(()=>null);if(!r||!r.items.length)break;r.items.forEach(i=>{const t=mk(i.track);if(t){D.liked.push(t);liked.add(t.id)}});o+=50}drawLib()})();
 }
 async function init(){
