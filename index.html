@@ -205,6 +205,47 @@ body::before{content:"";position:fixed;top:0;left:0;right:0;height:calc(env(safe
 .tab,#push,#q,#ly{overscroll-behavior-y:none}
 .tab,#push{padding-bottom:calc(env(safe-area-inset-bottom) + 110px)}
 #app.pm .tab,#app.pm #push{padding-bottom:28px}
+
+/* ===== Pulido Pro: retícula, profundidad, física y transiciones ===== */
+:root{--spr:cubic-bezier(.34,1.56,.64,1);--r1:28px;--r2:22px;--r3:12px}
+*{corner-shape:squircle}
+/* Retícula: márgenes laterales y notch */
+.hs{scroll-padding-inline:20px}.hs::after{content:"";flex:0 0 6px}
+h1{padding-top:calc(18px + env(safe-area-inset-top,0px)*0)}
+/* Radios homogéneos */
+.card img{border-radius:var(--r2)}.hero img,.hero .hrt{border-radius:var(--r1)}
+.row img,.lrow img,.lrow .hrt,#mini img{border-radius:var(--r3)}
+#art img{border-radius:var(--r1)}#mc{border-radius:var(--r1)}.field{border-radius:14px}
+#mini{border-radius:var(--r1)}#tabbar{border-radius:32px}.ta{border-radius:0}
+/* Profundidad del cristal flotante */
+#tabbar,#mini{background:rgba(255,255,255,.66);-webkit-backdrop-filter:blur(30px) saturate(190%);backdrop-filter:blur(30px) saturate(190%);border:.5px solid rgba(255,255,255,.9);box-shadow:0 22px 44px -8px rgba(20,20,40,.22),0 4px 12px rgba(20,20,40,.1),inset 0 1px 0 rgba(255,255,255,.95),inset 0 -1px 0 rgba(20,20,40,.05)}
+#app::after{content:"";position:absolute;left:0;right:0;bottom:0;height:calc(env(safe-area-inset-bottom) + 40px);background:linear-gradient(transparent,rgba(255,255,255,.92));pointer-events:none;z-index:5}
+#app.off::after{display:none}
+/* Física de muelle al tocar */
+.card,.row,.lrow,.btn,.cn,.tb,.rb,.ic,.t,.mi,.dots{transition:transform .55s var(--spr),opacity .2s,background .2s}
+.card:active,.btn:active,.cn:active,.tb:active,.rb:active,.ic:active,.t:active,.dots:active{transform:scale(.94);opacity:1;transition-duration:.12s,.2s,.2s}
+.row:active,.lrow:active{transform:scale(.975);opacity:1;transition-duration:.12s,.2s,.2s}
+#mini{transition:margin .45s var(--ios),transform .55s var(--spr)}#mini:active{transform:scale(.97)}
+/* Transiciones de página */
+.tab.in{animation:tin .5s var(--ios) backwards}
+@keyframes tin{from{opacity:0;transform:translateX(var(--d,22px))}}
+#push.open>.hero{animation:fup .55s var(--ios) backwards}#push.open>.row{animation:fade .5s ease backwards}
+@keyframes fup{from{opacity:0;transform:translateY(16px)}}@keyframes fade{from{opacity:0}}
+/* Reproductor: luz que respira y carátula latente */
+#sheet::before{z-index:-3}#sheet::after{z-index:-2}
+#glow{position:absolute;inset:0;z-index:-1;pointer-events:none}
+#glow::before,#glow::after{content:"";position:absolute;width:78vw;height:78vw;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--acc) 55%,transparent),transparent 68%);filter:blur(30px);animation:breathe 7s ease-in-out infinite alternate}
+#glow::before{top:-12vw;left:-18vw}#glow::after{bottom:8vh;right:-24vw;animation-duration:9s;animation-delay:-3s}
+@keyframes breathe{from{transform:scale(.85);opacity:.5}to{transform:scale(1.2) translate(6vw,4vw);opacity:.95}}
+#sheet.pz #glow::before,#sheet.pz #glow::after,#sheet:not(.open) #glow::before,#sheet:not(.open) #glow::after{animation-play-state:paused}
+#art img{transition:transform .7s var(--spr),box-shadow .7s ease}
+#sheet:not(.pz) #art img{box-shadow:0 38px 80px -10px color-mix(in srgb,var(--acc) 50%,transparent),0 10px 30px rgba(0,0,0,.2);animation:beat 2.6s ease-in-out infinite alternate}
+#sheet.pz #art img{box-shadow:0 10px 24px rgba(0,0,0,.18)}
+@keyframes beat{to{box-shadow:0 46px 96px -8px color-mix(in srgb,var(--acc) 62%,transparent),0 12px 34px rgba(0,0,0,.22)}}
+/* Microinteracciones */
+.pop svg{animation:bump .5s var(--spr)}
+@keyframes bump{0%{transform:scale(1)}35%{transform:scale(1.45)}70%{transform:scale(.88)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){#glow::before,#glow::after,#art img{animation:none!important}}
 </style></head><body>
 <div id="app" class="off">
   <main id="main">
@@ -226,6 +267,7 @@ body::before{content:"";position:fixed;top:0;left:0;right:0;height:calc(env(safe
 </div>
 
 <section id="sheet" aria-label="Reproduciendo ahora">
+  <div id="glow"></div>
   <div id="top"><i></i></div>
   <div id="art"><img id="np-img" alt="" draggable="false"></div>
   <div id="q"></div><div id="ly"></div>
@@ -312,28 +354,10 @@ if(navigator.mediaSession){const h=(a,f)=>{try{navigator.mediaSession.setActionH
 
 /* ---------- Acciones ---------- */
 async function start(body,t){
-  if(sp) { sp.activateElement(); wake(); }
+  if(!sp||!dev){toast('Conectando el reproductor…');return}
+  sp.activateElement();wake();
   if(t){P.t=t;P.pos=0;P.t0=performance.now();P.playing=true;paint(true)}
-  let yt = document.getElementById('yt-player');
-  if(!yt) {
-    yt = document.createElement('iframe');
-    yt.id = 'yt-player';
-    yt.style = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;';
-    yt.allow = 'autoplay; encrypted-media';
-    document.body.appendChild(yt);
-  }
-  if(t) yt.src = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(t.name + ' ' + t.artist)}&autoplay=1`;
-  
-  try{
-    if(sp&&dev) await api('/me/player/play?device_id='+dev,{method:'PUT',body:JSON.stringify(body)});
-  }catch(e){
-    if(e&&e.status===403) {
-      toast('Reproduciendo vía Motor Libre');
-      P.playing = true; P.t0 = performance.now(); paint(true);
-    } else {
-      toast('No se pudo reproducir');
-    }
-  }
+  try{await api('/me/player/play?device_id='+dev,{method:'PUT',body:JSON.stringify(body)})}catch(e){toast(e.status===403?'Se requiere Spotify Premium':'No se pudo reproducir')}
 }
 const setShuf=s=>{P.shuf=s;paint();return api('/me/player/shuffle?state='+s+'&device_id='+dev,{method:'PUT'}).catch(()=>{})};
 let DC=null;
@@ -408,7 +432,9 @@ async function search(q){
   catch(e){s.innerHTML='<div class="empty">No se pudo buscar. Inténtalo de nuevo.</div>'}
 }
 $('#qi').addEventListener('input',e=>{clearTimeout(st);st=setTimeout(()=>search(e.target.value),350)});
-function tab(n){closePush();if(n==='stats')drawStats();['home','lib','search','stats'].forEach(k=>$('#t-'+k).hidden=k!==n);$$('.tb').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===n)))}
+const TO=['home','lib','search','stats'];let tl='home';
+function pgIn(n){const e=$('#t-'+n);e.style.setProperty('--d',(TO.indexOf(n)>=TO.indexOf(tl)?22:-22)+'px');tl=n;e.classList.remove('in');void e.offsetWidth;e.classList.add('in')}
+function tab(n){closePush();if(n==='stats')drawStats();['home','lib','search','stats'].forEach(k=>$('#t-'+k).hidden=k!==n);$$('.tb').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===n)));pgIn(n)}
 
 /* Cola de reproducción */
 async function queue(){
@@ -436,13 +462,7 @@ document.addEventListener('click',e=>{
   if(q('[data-connect]'))login();
 });
 document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('[role=button]')){e.preventDefault();e.target.click()}if(e.key==='Escape'){closeSheet();closePush()}});
-$('#pp').onclick=()=>{
-  P.playing = !P.playing;
-  let yt = document.getElementById('yt-player');
-  if(yt) yt.src = P.playing && P.t ? `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(P.t.name + ' ' + P.t.artist)}&autoplay=1` : '';
-  if(sp) { sp.activateElement(); wake(); sp.togglePlay(); }
-  paint(false);
-};
+$('#pp').onclick=()=>{if(!sp)return;sp.activateElement();wake();sp.togglePlay()};
 $('#prev').onclick=()=>sp&&sp.previousTrack();$('#next').onclick=()=>sp&&sp.nextTrack();
 $('#np-like').onclick=()=>P.t&&toggleLike(P.t);$('#np-more').onclick=()=>P.t&&menu(P.t.id);
 $('#shuf').onclick=()=>setShuf(!P.shuf);
@@ -537,6 +557,7 @@ async function story(t){toast('Creando imagen…');try{
  p.addEventListener('touchmove',e=>{if(!on)return;const t=e.touches[0];dx=t.clientX-x0;if(dx>0&&dx>Math.abs(t.clientY-y0)){p.style.transition='none';p.style.transform=`translateX(${dx}px)`}},{passive:true});
  p.addEventListener('touchend',()=>{if(!on)return;on=false;p.style.transition='';p.style.transform='';if(dx>90)closePush()})})();
 
+document.addEventListener('click',e=>{const b=e.target.closest('[data-pp],#pp,#np-like,#next,#prev');if(b){b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop')}},true);
 /* ---------- Arranque ---------- */
 function connectScreen(msg){$('#t-home').innerHTML=`<div class="empty"><h1>Q-Music</h1><p>${esc(msg||'Tu música de Spotify, con una interfaz pensada para iPhone. Requiere Spotify Premium.')}</p><button class="cn" data-connect>Conectar con Spotify</button>${/iP(hone|ad)/.test(navigator.userAgent)&&!navigator.standalone?'<p style="margin-top:18px;font-size:13px">Para verla a pantalla completa: Compartir → Agregar a inicio y deja activado «Abrir como app web».</p>':''}</div>`}
 function startPlayer(){
