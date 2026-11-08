@@ -333,6 +333,12 @@ html.sa #app,html.sa #sheet,html.sa #menu{height:var(--vh);top:0;bottom:auto}
   </nav>
 </div>
 
+<!-- Contenedor oculto de YouTube para respaldo automático en cuentas Free / errores -->
+<div id="youtube-player-container" style="display: none;">
+  <div id="yt-player"></div>
+</div>
+<script src="https://www.youtube.com/iframe_api"></script>
+
 <section id="sheet" aria-label="Reproduciendo ahora">
   <div id="glow"></div>
   <div id="top"><i></i></div>
@@ -404,22 +410,18 @@ input,textarea{-webkit-user-select:text!important;user-select:text!important}
 <script>
 (()=>{'use strict';
 const vh=()=>{const st=navigator.standalone===true||matchMedia('(display-mode: standalone)').matches;let h=Math.max(innerHeight,(window.visualViewport||{}).height||0);
- /* App instalada: iOS a veces entrega un alto menor al real (quita ~1 cm arriba y abajo); se usa el alto físico de la pantalla */
  if(st&&innerHeight>=innerWidth)h=Math.max(h,screen.height,screen.width);
  document.documentElement.style.setProperty('--vh',h+'px');document.documentElement.classList.toggle('sa',st)};vh();addEventListener('resize',vh);addEventListener('orientationchange',()=>setTimeout(vh,250));addEventListener('pageshow',vh);window.visualViewport&&visualViewport.addEventListener('resize',vh);
-/* Anclaje del viewport: evita que iOS desplace o amplíe la página (eso desviaba los toques ~1 cm) */
 {const pin=()=>{if(scrollX||scrollY)scrollTo(0,0)};
  ['scroll','resize','pageshow','focusout','touchend','orientationchange'].forEach(ev=>addEventListener(ev,pin,{passive:true}));
  if(window.visualViewport)['scroll','resize'].forEach(ev=>visualViewport.addEventListener(ev,pin));setInterval(pin,2000);
  ['gesturestart','gesturechange','gestureend'].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault()));
- /* Diagnóstico opcional: abre la app con ?debug para ver dónde registra los toques */
  if(/[?&]debug/.test(location.search)){const d=document.createElement('div');d.style.cssText='position:fixed;z-index:99999;left:6px;bottom:6px;background:#000c;color:#0f0;font:11px monospace;padding:4px 6px;border-radius:6px;pointer-events:none;white-space:pre';document.body.appendChild(d);
   const dot=document.createElement('div');dot.style.cssText='position:fixed;z-index:99999;width:20px;height:20px;margin:-10px;border-radius:50%;background:#f00a;pointer-events:none;display:none';document.body.appendChild(dot);
   const info=()=>{const v=window.visualViewport||{};return `inner ${innerWidth}x${innerHeight} scr ${screen.width}x${screen.height} sa ${document.documentElement.classList.contains('sa')?1:0} vh ${getComputedStyle(document.documentElement).getPropertyValue('--vh')}\nvv ${Math.round(v.width)}x${Math.round(v.height)} off ${Math.round(v.offsetLeft||0)},${Math.round(v.offsetTop||0)} pg ${Math.round(v.pageTop||0)}\nscroll ${scrollX},${scrollY}`};
   const up=e=>{const t=(e.touches&&e.touches[0])||e;dot.style.display='block';dot.style.left=t.clientX+'px';dot.style.top=t.clientY+'px';const el=document.elementFromPoint(t.clientX,t.clientY);d.textContent=info()+'\ntouch '+Math.round(t.clientX)+','+Math.round(t.clientY)+'\n→ '+(el?(el.id?'#'+el.id:el.tagName+'.'+String(el.className).slice(0,20)):'-')};
   addEventListener('touchstart',up,{passive:true});addEventListener('touchmove',up,{passive:true});d.textContent=info()}}
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
-/* Imágenes sin parpadeo: arrancan en opacity 0 y se funden solo cuando ya están cargadas */
 {const ok=i=>i.classList.add('ld');
  document.addEventListener('load',e=>{if(e.target.tagName==='IMG')ok(e.target)},true);
  document.addEventListener('error',e=>{if(e.target.tagName==='IMG')ok(e.target)},true);
@@ -455,8 +457,6 @@ const lib=(m,ids)=>{const u=ids.map(i=>'spotify:track:'+i).join(',');return api(
 
 /* ---------- Estado de reproducción ---------- */
 const P={t:null,pos:0,t0:0,playing:false,shuf:false,rep:0};let sp=null,dev='',vol=1,scrub=false;
-/* Reproductor secundario (iframe #yt-player): siempre se destruye antes de crear el siguiente,
-   así nunca suena ni un instante la canción anterior */
 let pend=null,muted=false,mt;
 const spSeek=ms=>{const f=()=>api('/me/player/seek?position_ms='+Math.round(ms)+'&device_id='+dev,{method:'PUT'}).catch(()=>{});try{const r=sp.seek(ms);if(r&&r.catch)r.catch(f)}catch(e){f()}};
 const vset=v=>{try{sp&&Promise.resolve(sp.setVolume(v)).catch(()=>{})}catch(e){}};
@@ -479,7 +479,6 @@ async function goArtist(id,name){
   if(!id){toast('No se encontró al artista');return}
   if(sheet.classList.contains('open'))closeSheet();
   open('ar:'+id)}
-/* Estado REAL del audio (YouTube avisa con mensajes): hora, pausa, carga, fin y errores */
 function ytFail(){if(!P.t)return;
   if(ytTry<2){ytPlay(P.t,ytTry+1);return}
   P.playing=false;P.buf=false;P.pos=0;paint(false);
@@ -503,7 +502,6 @@ addEventListener('message',e=>{
   else if(st===0&&performance.now()-lastEnd>2500){lastEnd=performance.now();P.buf=false;
     if(P.rep===2){P.pos=0;P.t0=performance.now();ytCmd('seekTo',[0,true]);ytCmd('playVideo')}else skip(1,true)}
   if(ch)paint(false)});
-/* Siguiente / anterior sin Spotify: usa la lista que se está reproduciendo */
 function skip(dir,auto){
   if(sp&&dev){return dir>0?sp.nextTrack():sp.previousTrack()}
   const l=L[PK]||[],i=P.t?l.findIndex(x=>x.id===P.t.id):-1;if(i<0||!l.length)return;
@@ -513,7 +511,6 @@ function skip(dir,auto){
   if(n>=l.length){if(P.rep>=1)n=0;else{P.playing=false;P.pos=0;ytCmd('pauseVideo');paint(false);return}}
   if(n<0)n=0;
   playL(PK,n)}
-/* Bloqueo / desbloqueo / volver a la app: si debía sonar, se reanuda sola */
 const resume=()=>{if(!P.playing)return;try{wake()}catch(e){}
   if(dev){[0,150,500,1200,2500].forEach(d=>setTimeout(async()=>{if(!P.playing||performance.now()-(P.userPause||0)<4000)return;const s=await sp.getCurrentState().catch(()=>null);if(s&&s.paused)sp.resume().catch(()=>{})},d));return}
   [0,150,500,1200,2500].forEach(d=>setTimeout(()=>{if(P.playing&&performance.now()-(P.userPause||0)>4000)ytCmd('playVideo')},d))};
@@ -521,7 +518,6 @@ window.qmResume=()=>{lastVis=performance.now();resume()};
 document.addEventListener('visibilitychange',()=>{lastVis=performance.now();resume()});
 addEventListener('pageshow',()=>{lastVis=performance.now();resume()});addEventListener('focus',resume);
 function halt(){P.userPause=performance.now();try{sp&&sp.pause()}catch(e){}ytCmd('pauseVideo');if(P.playing){P.pos=now();P.playing=false;paint(false)}}
-function unmute(d){if(!muted)return;muted=false;clearTimeout(mt);mt=setTimeout(()=>vset(vol),d)}
 const now=()=>P.t?Math.min(P.t.dur||1e9,P.pos+(P.playing&&!P.buf?performance.now()-P.t0:0)):0;
 function wav(){const n=8000,b=new Uint8Array(44+n),v=new DataView(b.buffer),w=(o,s)=>[...s].forEach((c,i)=>v.setUint8(o+i,c.charCodeAt(0)));w(0,'RIFF');v.setUint32(4,36+n,true);w(8,'WAVEfmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,8000,true);v.setUint32(28,8000,true);v.setUint16(32,1,true);v.setUint16(34,8,true);w(36,'data');v.setUint32(40,n,true);b.fill(128,44);return URL.createObjectURL(new Blob([b],{type:'audio/wav'}))}
 const silent=new Audio(wav());silent.loop=true;silent.setAttribute('playsinline','');
@@ -530,7 +526,6 @@ let tt;function toast(s){const e=$('#toast');e.textContent=s;e.classList.add('on
 
 function onState(s){
   const c=s&&s.track_window&&s.track_window.current_track;if(!c)return;
-  /* Mientras se carga la pista pedida, ignora estados rezagados de la canción anterior */
   if(pend){if(c.id===pend.id||(c.linked_from&&c.linked_from.id===pend.id)||performance.now()>pend.until)pend=null;else return}
   const t=R.get(c.id)||mk(c);if(!t.dur)t.dur=s.duration;
   const ch=!P.t||P.t.id!==t.id;
@@ -543,7 +538,6 @@ function onState(s){
   if(ch){unmute(150);const y=document.getElementById('yt-player');if(y&&y.dataset.tid!==t.id)ytStop()}
   if(P.playing)wake();if(ch){rec(t);if(SL&&SL.end&&SL.end!==t.id){sp.pause();SL=null;toast('Música apagada')}}paint(ch);
 }
-/* Un solo punto de actualización: mini-reproductor, hoja, lista y pantalla de bloqueo */
 function paint(ch){
   const t=P.t,A=$('#app');if(!t)return;
   const m=$('#mini');m.hidden=false;A.classList.add('pm');
@@ -565,7 +559,7 @@ function media(){const ms=navigator.mediaSession,t=P.t;if(!ms||!t)return;
  ms.playbackState=P.playing?'playing':'paused';if(ms.setPositionState&&t.dur)ms.setPositionState({duration:t.dur/1000,playbackRate:1,position:now()/1000})}catch(e){}
  try{const h=window.webkit&&webkit.messageHandlers&&webkit.messageHandlers.qmNow;if(h)h.postMessage({title:t.name||'',artist:t.artist||'',album:t.album||'',art:t.lg||t.sm||'',dur:(t.dur||0)/1000,pos:now()/1000,playing:!!P.playing})}catch(e){}}
 if(navigator.mediaSession){const h=(a,f)=>{try{navigator.mediaSession.setActionHandler(a,f)}catch(e){}};
- h('play',()=>{if(!P.playing)toggle()});h('pause',()=>{if(P.playing)toggle()});h('previoustrack',()=>skip(-1));h('nexttrack',()=>skip(1));h('seekto',d=>{if(d.seekTime!=null){P.pos=d.seekTime*1000;P.t0=performance.now();ytCmd('seekTo',[d.seekTime,true]);sp&&dev&&spSeek(d.seekTime*1000)}})}
+ h('play',()=>{if(!P.playing)toggle()});h('pause',()=>{if(P.playing)toggle()});h('previoustrack',()=>skip(-1));h('nexttrack',()=>skip(1));h('seekto',d=>{if(d.seekTime!=null){P.pos=d.seekTime*1000;P.t0=performance.now();P.seekTo=d.seekTime*1000;P.seekAt=performance.now();ytCmd('seekTo',[d.seekTime,true]);sp&&dev&&spSeek(d.seekTime*1000);tick();media()}})}
 
 window.qmRemote=(a,v)=>{
   if(a==='play'){if(!P.playing)toggle()}
@@ -575,26 +569,29 @@ window.qmRemote=(a,v)=>{
   else if(a==='prev')skip(-1);
   else if(a==='seek'&&P.t){const ms=v*1000;P.pos=ms;P.t0=performance.now();P.seekTo=ms;P.seekAt=performance.now();ytCmd('seekTo',[v,true]);if(P.playing)setTimeout(()=>ytCmd('playVideo'),150);sp&&dev&&spSeek(ms);tick();media()}
 };
-/* ---------- Acciones ---------- */
-async function start(body,t){
-  if(sp) { sp.activateElement(); wake(); }
-  if(t){
-    ytStop();                                   /* corta ya el reproductor secundario anterior */
-    if(sp){muted=true;clearTimeout(mt);vset(0)} /* silencia la pista previa de Spotify hasta que cargue la nueva */
-    pend={id:t.id,until:performance.now()+3500};
-    P.t=t;P.pos=0;P.t0=performance.now();P.playing=true;paint(true);ytPlay(t);
+/* ---------- Acciones con Fallback Automático a YouTube ---------- */
+async function start(body, t) {
+  if (sp) { sp.activateElement(); wake(); }
+  if (t) {
+    // Si hay pista seleccionada, preparamos la interfaz de inmediato
+    P.t = t; P.pos = 0; P.t0 = performance.now(); P.playing = true; paint(true);
   }
-  try{
-    if(sp&&dev) await api('/me/player/play?device_id='+dev,{method:'PUT',body:JSON.stringify(body)});
-  }catch(e){
-    if(e&&e.status===403) {
-      toast('Reproduciendo vía Motor Libre');
-      P.playing = true; P.t0 = performance.now(); paint(true);
-    } else {
-      toast('No se pudo reproducir');
+  
+  let spotifyExito = false;
+  try {
+    if (sp && dev) {
+      await api('/me/player/play?device_id=' + dev, { method: 'PUT', body: JSON.stringify(body) });
+      spotifyExito = true;
     }
-  }finally{
-    if(t&&sp){clearTimeout(mt);mt=setTimeout(()=>{muted=false;pend=null;vset(vol)},1600)}  /* respaldo: el volumen vuelve aunque no llegue estado nuevo */
+  } catch (e) {
+    spotifyExito = false;
+  }
+
+  // Si Spotify falla, da error 403 o no hay dispositivo activo (cuenta Free / restricciones), 
+  // activamos el motor alternativo de YouTube de forma transparente.
+  if (!spotifyExito && t) {
+    ytPlay(t);
+    toast('Reproduciendo vía Motor Libre (YouTube)');
   }
 }
 const setShuf=async s=>{P.shuf=s;window.__shufAt=performance.now();paint();if(!(sp&&dev))return;try{await api('/me/player/shuffle?state='+s+'&device_id='+dev,{method:'PUT'})}catch(e){P.shuf=!s;window.__shufAt=0;paint();toast('No se pudo cambiar el modo aleatorio')}};
@@ -639,16 +636,15 @@ function drawHome(){
   +(D.liked.length?`<h2>Favoritas recientes</h2>${list(D.liked.slice(0,10),'hl')}`:'')+rc(2)+rc(3)
   +(D.al.length?`<h2>Tus álbumes</h2><div class="hs">${D.al.slice(0,12).map(card).join('')}</div>`:'');
 }
-/* Recomendaciones locales según lo que escuchas */
 function topArt(){const c={},add=(a,w)=>{const n=(a||'').split(',')[0].trim();if(n)c[n]=(c[n]||0)+w};H.filter(h=>h.ts>Date.now()-2592e6).forEach(h=>add(h.artist,3));D.recent.forEach(t=>add(t.artist,2));D.liked.slice(0,100).forEach(t=>add(t.artist,1));return Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,4).map(x=>x[0])}
 const nz=x=>(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
 async function drawRec(){const names=topArt(),seen=new Set([...D.liked,...D.recent].map(t=>t.id));
  const rs=await Promise.all(names.map(n=>api('/search?type=track&limit=10&q='+encodeURIComponent('artist:"'+n+'"')).catch(()=>null)));
- D.rec=names.map((n,i)=>({n,t:((rs[i]&&rs[i].tracks&&rs[i].tracks.items)||[]).filter(x=>x&&x.artists&&x.artists.some(a=>nz(a.name)===nz(n))).map(x=>mk(x)).filter(t=>t&&!seen.has(t.id))})).filter(r=>r.t.length>2);
+ D.rec=names.map((n,i)=>({n,t:((rs[i]&&rs[i].tracks&&rs[i].tracks.items||[]).filter(x=>x&&x.artists&&x.artists.some(a=>nz(a.name)===nz(n))).map(x=>mk(x)).filter(t=>t&&!seen.has(t.id))})).filter(r=>r.t.length>2);
  D.redis=D.liked.slice(15).filter(t=>!H.some(h=>h.id===t.id)).sort(()=>Math.random()-.5).slice(0,8);
  const y=$('#t-home').scrollTop;drawHome();$('#t-home').scrollTop=y}
 function drawLib(){
-  $('#t-lib').innerHTML=`<h1>Biblioteca</h1><div class="lrow" data-newpl role="button" tabindex="0"><div class="hrt">${NI}</div><div class="m"><b>Nueva lista</b><span>Crea una lista de reproducción</span></div>${I.chev}</div><div class="lrow" data-open="liked:"><div class="hrt">${I.heartF}</div><div class="m"><b>Favoritas</b><span>${D.total} canciones</span></div>${I.chev}</div>`
+  $('#t-lib').innerHTML=`<h1>Biblioteca</h1><div class="lrow" data-newpl role="button" tabindex="0"><div class="hrt">${NI}</div><div class="m"><b>Nueva lista</b><span>Crea una lista de reproducción</span></div>${I.chev}</div><div class="lrow" data-open="liked:" role="button" tabindex="0"><div class="hrt">${I.heartF}</div><div class="m"><b>Favoritas</b><span>${D.total} canciones</span></div>${I.chev}</div>`
   +(D.pl.length?`<h2>Listas</h2>${D.pl.map(crow).join('')}`:'')+(D.al.length?`<h2>Álbumes</h2>${D.al.map(crow).join('')}`:'');
 }
 const items=async id=>{let r;try{r=await api('/playlists/'+id+'/items?limit=100')}catch(e){r=await api('/playlists/'+id+'/tracks?limit=100')}return r.items.map(i=>mk(i.track||i.item)).filter(Boolean)};
@@ -679,7 +675,6 @@ const qi=$('#qi'),qx=$('#qx'),sr=$('#sr');
 const hget=()=>{try{return JSON.parse(localStorage.getItem('qm.hist')||'[]')}catch(e){return []}};
 const hset=a=>{try{localStorage.setItem('qm.hist',JSON.stringify(a))}catch(e){}};
 function saveQ(q){q=(q||'').trim();if(q.length<2)return;hset([q,...hget().filter(x=>x.toLowerCase()!==q.toLowerCase())].slice(0,20))}
-function drawHist(){const h=hget();sr.innerHTML=h.length?`<div class="hh"><h2>Recientes</h2><button data-hc>Borrar todo</button></div>`+h.map((q,i)=>`<div class="hq" data-hq="${i}" role="button" tabindex="0">${ic('<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>')}<b>${esc(q)}</b><button class="x" data-hd="${i}" aria-label="Eliminar">${ic('<path d="M7 7l10 10M17 7L7 17"/>')}</button></div>`).join(''):''}
 const syncX=()=>{qx.hidden=!qi.value};
 qi.addEventListener('input',()=>{syncX();clearTimeout(st);st=setTimeout(()=>search(qi.value),350)});
 qi.addEventListener('keydown',e=>{if(e.key==='Enter'){saveQ(qi.value);qi.blur()}});
@@ -696,11 +691,10 @@ const TO=['home','lib','search','stats'];let tl='home';
 function pgIn(n){const e=$('#t-'+n);e.style.setProperty('--d',(TO.indexOf(n)>=TO.indexOf(tl)?22:-22)+'px');tl=n;e.classList.remove('in');void e.offsetWidth;e.classList.add('in');hdr(e,e.scrollTop)}
 function tab(n){closePush();if(n==='stats')drawStats();['home','lib','search','stats'].forEach(k=>$('#t-'+k).hidden=k!==n);$$('.tb').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===n)));pgIn(n)}
 
-/* Cola de reproducción */
 let PK='';
 async function queue(){
   const S=$('#sheet');S.classList.remove('ly');$('#lb').classList.remove('on');S.classList.toggle('q');
-  const on=S.classList.contains('q');$('#qb').classList.toggle('on',on);if(!on)return;   /* solo cambia la vista: no toca la reproducción */
+  const on=S.classList.contains('q');$('#qb').classList.toggle('on',on);if(!on)return;
   const q=$('#q'),H2='<h2>A continuación</h2>';
   const draw=a=>{L.q=a;q.innerHTML=H2+(a.length?a.map((t,i)=>`<div class="row" data-id="${t.id}" data-l="q" data-i="${i}"><img src="${esc(t.sm)}" alt=""><div class="m"><b>${esc(t.name)}</b><span>${esc(t.artist)}</span></div></div>`).join(''):'<div class="empty">La cola está vacía.</div>')};
   const loc=()=>{const l=L[PK]||[],i=P.t?l.findIndex(x=>x.id===P.t.id):-1;return i>=0?l.slice(i+1,i+31):[]};
@@ -709,7 +703,6 @@ async function queue(){
   catch(e){draw(loc())}
 }
 
-/* ---------- Eventos ---------- */
 const sheet=$('#sheet'),openSheet=()=>{if(P.t)sheet.classList.add('open')},closeSheet=()=>{sheet.classList.remove('open','q');paint()};
 document.addEventListener('click',e=>{
   if(performance.now()<(window.__hold||0)){e.stopPropagation();e.preventDefault();return}
@@ -720,7 +713,7 @@ document.addEventListener('click',e=>{
   if(q('[data-newpl]')){newList();return}
   if(q('#mini')){openSheet();return}
   if(el=q('[data-m]')){e.stopPropagation();menu(el.dataset.m);return}
-  if(el=q('[data-l]')){playL(el.dataset.l,+el.dataset.i);return}   /* tocar una canción: suena y solo aparece el mini-reproductor */
+  if(el=q('[data-l]')){playL(el.dataset.l,+el.dataset.i);return}
   if(el=q('[data-open]')){open(el.dataset.open);return}
   if(q('[data-back]')){closePush();return}
   if(q('[data-pa]')){playL('d',0,false);return}
@@ -729,7 +722,6 @@ document.addEventListener('click',e=>{
   if(q('[data-connect]'))login();
 });
 document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('[role=button]')){e.preventDefault();e.target.click()}if(e.key==='Escape'){closeSheet();closePush()}});
-/* Pausa/reanuda sin saltos: se congela la posición al pausar y el reloj se reengancha al reanudar */
 function toggle(){
   P.act=performance.now();
   if(P.playing){P.userPause=performance.now();P.pos=now();P.playing=false;ytCmd('pauseVideo')}
@@ -757,21 +749,17 @@ window.qmSysVol=v=>{if(vl.dataset.drag)return;vl.value=Math.round(v*100);vl.styl
 ['pointerup','touchend','pointercancel','touchcancel'].forEach(ev=>vl.addEventListener(ev,()=>setTimeout(()=>{delete vl.dataset.drag},600)));
 {const ic=document.querySelector('.ex svg.f');if(ic){ic.style.pointerEvents='auto';ic.addEventListener('click',()=>{if(+vl.value>0){vPrev=+vl.value;vl.value=0}else vl.value=vPrev||60;vl.dispatchEvent(new Event('input'))})}}
 vl.style.setProperty('--p','100%');
-/* Arrastrar hacia abajo para cerrar */
 (()=>{let y0=null;const tp=$('#top');
  tp.addEventListener('pointerdown',e=>{y0=e.clientY;tp.setPointerCapture(e.pointerId);sheet.style.transition='none'});
- /* El desplazamiento se acota entre 0 y el alto de pantalla: un gesto brusco ya no lanza la hoja fuera */
  let t0=0;const cl=e=>Math.min(innerHeight,Math.max(0,e.clientY-y0));
  tp.addEventListener('pointerdown',()=>{t0=performance.now()});
  tp.addEventListener('pointermove',e=>{if(y0!=null)sheet.style.transform=`translateY(${cl(e)}px)`});
  const end=e=>{if(y0==null)return;const d=cl(e),v=d/Math.max(1,performance.now()-t0);y0=null;sheet.style.transition='';sheet.style.transform='';if(d>110||(d>40&&v>.6))closeSheet()};
  tp.addEventListener('pointerup',end);tp.addEventListener('pointercancel',end);tp.addEventListener('click',closeSheet)})();
 
-
 function accent(t){const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{try{const g=document.createElement('canvas').getContext('2d');g.canvas.width=g.canvas.height=12;g.drawImage(im,0,0,12,12);const d=g.getImageData(0,0,12,12).data;let b=null,bs=.06;
  for(let i=0;i<d.length;i+=4){const mx=Math.max(d[i],d[i+1],d[i+2]),mn=Math.min(d[i],d[i+1],d[i+2]),sc=(mx-mn)/255*(1-Math.abs(mx+mn-255)/255);if(sc>bs){bs=sc;b=[d[i],d[i+1],d[i+2]]}}
  if(!b)b=[17,17,17];const k=Math.max(...b)>150?150/Math.max(...b):1;document.documentElement.style.setProperty('--acc',`rgb(${b.map(v=>Math.round(v*k))})`);{const m=document.querySelector('meta[name=theme-color]'),c=b.map(v=>Math.round(v*k*.1+255*.9));if(m)m.content='rgb('+c+')'}}catch(e){}};im.src=t.sm||t.lg}
-/* ---------- Q-Music: historial, stats, letras, stories y gestos ---------- */
 const jl=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}};
 const H=jl('qm.h',[]),MS=jl('qm.ms',{}),dk=d=>{d=d||new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()};
 const sv=()=>{try{localStorage.setItem('qm.h',JSON.stringify(H.slice(0,3000)));localStorage.setItem('qm.ms',JSON.stringify(MS))}catch(e){}};
@@ -787,14 +775,12 @@ function drawStats(){
  <h2>Top del mes</h2>${tm.map(x=>`<div class="ta"><i style="width:${x[1]/mx*100}%"></i><b>${esc(x[0])}</b><span>${x[1]}</span></div>`).join('')}
  <h2>Historial</h2>${list(H.slice(0,100),'h')}`:'<div class="empty">Aún no hay historial. Reproduce algo y Q-Music lo guardará aquí, solo en tu dispositivo.</div>');
 }
-/* Letras sincronizadas (LRCLIB) */
 const LC=new Map();let LN=[],LA=-1;
 const LT=new Map();let TRON=(()=>{try{return localStorage.getItem('qm.tr')!=='0'}catch(e){return true}})();
 const ltGet=id=>{if(LT.has(id))return LT.get(id);try{const v=localStorage.getItem('qm.lt.'+id);if(v){const j=JSON.parse(v);LT.set(id,j);return j}}catch(e){}return null};
 const ltSet=(id,T)=>{LT.set(id,T);try{localStorage.setItem('qm.lt.'+id,JSON.stringify(T));const k=JSON.parse(localStorage.getItem('qm.ltk')||'[]').filter(x=>x!==id);k.push(id);while(k.length>40)localStorage.removeItem('qm.lt.'+k.shift());localStorage.setItem('qm.ltk',JSON.stringify(k))}catch(e){}};
 const enW=new Set(["the","you","and","i","to","my","it","is","in","of","that","for","on","with","be","this","we","are","your","was","but","not","all","just","when","what","like","love","know","oh","yeah","baby","they","got","can","will","would","dont","don't","im","i'm","it's","its","one","up","out","she","he","him","her","cause","gonna","wanna"]);
 const esW=new Set(["el","la","los","las","que","de","y","en","un","una","te","tu","se","es","por","con","para","lo","del","al","como","pero","más","mas","ya","yo","tú","amor","corazón","mi","qué","está"]);
-function isEn(text){const w=text.toLowerCase().match(/[a-záéíóúñ']+/g)||[];if(w.length<12)return false;let e=0,sp=0;w.forEach(x=>{if(enW.has(x))e++;if(esW.has(x))sp++});return e/w.length>.18&&e>sp*2}
 async function tr1(q){
  try{const r=await fetch('https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=es&dt=t&q='+encodeURIComponent(q));if(r.ok){const j=await r.json(),o=(j[0]||[]).map(x=>x[0]).join('');if(o)return o}}catch(e){}
  try{const r=await fetch('https://api.mymemory.translated.net/get?langpair=en|es&q='+encodeURIComponent(q));if(r.ok){const j=await r.json(),o=j&&j.responseData&&j.responseData.translatedText;if(o&&+j.responseStatus===200)return o}}catch(e){}
@@ -825,7 +811,6 @@ async function ly(t){const b=$('#ly');if(!t||!sheet.classList.contains('ly'))ret
 function syncLy(){if(!LN.length||!sheet.classList.contains('ly'))return;const n=now();let k=-1;for(let i=0;i<LN.length&&LN[i][0]<=n+250;i++)k=i;if(k===LA)return;LA=k;const ps=$$('#ly p'),b=$('#ly');ps.forEach((p,i)=>p.classList.toggle('on',i===k));if(ps[k])b.scrollTo({top:ps[k].offsetTop-b.clientHeight/3,behavior:'smooth'})}
 $('#lb').onclick=()=>{sheet.classList.remove('q');sheet.classList.toggle('ly');$('#lb').classList.toggle('on',sheet.classList.contains('ly'));paint();ly(P.t)};
 $('#ly').onclick=e=>{if(e.target.closest('[data-trt]')){const h=e.target.closest('[data-trt]');if(/reintentar/.test(h.textContent)){TRON=true}else TRON=!TRON;try{localStorage.setItem('qm.tr',TRON?'1':'0')}catch(_){}ly(P.t);return}const p=e.target.closest('[data-ls]');if(p&&sp)spSeek(+p.dataset.ls)};
-/* Imagen 9:16 para Stories */
 async function story(t){toast('Creando imagen…');try{
  const im=await new Promise((o,e)=>{const i=new Image();i.crossOrigin='anonymous';i.onload=()=>o(i);i.onerror=e;i.src=t.lg}),F='-apple-system,system-ui,sans-serif';
  const c=document.createElement('canvas');c.width=1080;c.height=1920;const g=c.getContext('2d'),s=document.createElement('canvas');s.width=24;s.height=42;s.getContext('2d').drawImage(im,-9,0,42,42);
@@ -838,12 +823,10 @@ async function story(t){toast('Creando imagen…');try{
  const b=await new Promise(r=>c.toBlob(r,'image/png')),f=new File([b],'q-music-story.png',{type:'image/png'});
  if(navigator.canShare&&navigator.canShare({files:[f]}))await navigator.share({files:[f]});else{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='q-music-story.png';a.click()}
 }catch(e){if(!e||e.name!=='AbortError')toast('No se pudo crear la imagen')}}
-/* Dock flotante: se oculta al hacer scroll y reaparece al detenerte */
 (()=>{const A=$('#app'),y=new WeakMap();let t;document.addEventListener('scroll',e=>{const s=e.target;if(!s.classList||!(s.classList.contains('tab')||s.id==='push'))return;const v=s.scrollTop;if(s.classList.contains('tab'))hdr(s,v);if(v<0||v>s.scrollHeight-s.clientHeight+1)return;const d=v-(y.get(s)||0);y.set(s,v);if(d>6&&v>40)A.classList.add('dh');else if(d<-6)A.classList.remove('dh');clearTimeout(t);t=setTimeout(()=>A.classList.remove('dh'),700)},true)})();
 document.addEventListener('selectionchange',()=>{const a=document.activeElement;if(a&&/^(INPUT|TEXTAREA)$/.test(a.tagName))return;const g=getSelection();if(g&&!g.isCollapsed)g.removeAllRanges()});
 document.addEventListener('selectstart',e=>{const n=e.target&&e.target.nodeType===3?e.target.parentElement:e.target;if(!(n&&n.closest&&n.closest('input,textarea')))e.preventDefault()});
 document.addEventListener('contextmenu',e=>{if(!(e.target.closest&&e.target.closest('input,textarea')))e.preventDefault()});
-/* Menú radial: mantén pulsado y desliza (arriba: cola · derecha: favorita · izquierda: artista) */
 (()=>{let T,o=null,box=null,dir='',sup=false;
  const D=[['u',0,-1,'A continuación',I.next2],['r',1,0,'Favorita',I.heart],['l',-1,0,'Artista',ic('<circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/>')]];
  const cl=()=>{clearTimeout(T);if(box){box.remove();box=null}o=null;dir=''};
@@ -858,7 +841,6 @@ document.addEventListener('contextmenu',e=>{if(!(e.target.closest&&e.target.clos
  document.addEventListener('click',e=>{if(sup){sup=false;e.stopPropagation();e.preventDefault()}},true);
  document.addEventListener('contextmenu',e=>{if(e.target.closest('[data-id][data-l]'))e.preventDefault()});
  document.addEventListener('touchmove',e=>{if(box)e.preventDefault()},{passive:false})})();
-/* Deslizar fila: derecha = favorita · izquierda = a continuación */
 (()=>{let r=null,x0,y0,dx=0,lk=0,sw=false;
  document.addEventListener('pointerdown',e=>{sw=false;const el=e.target.closest('.row[data-l]');if(!el||e.target.closest('[data-m]'))return;r=el;x0=e.clientX;y0=e.clientY;dx=0;lk=0});
  document.addEventListener('pointermove',e=>{if(!r)return;const mx=e.clientX-x0,my=e.clientY-y0;
@@ -870,7 +852,6 @@ document.addEventListener('contextmenu',e=>{if(!(e.target.closest&&e.target.clos
   const t=R.get(el.dataset.id);if(!t||Math.abs(d)<80)return;navigator.vibrate&&navigator.vibrate(10);if(P.t&&t.id===P.t.id){d>0?skip(-1):skip(1)}else d>0?toggleLike(t):playNext(t)};
  document.addEventListener('pointerup',end);document.addEventListener('pointercancel',end);
  document.addEventListener('click',e=>{if(sw){sw=false;e.stopPropagation();e.preventDefault()}},true)})();
-/* Cerrar el reproductor: desliza hacia abajo desde cualquier punto de la pantalla */
 (()=>{let sx,sy,t0,on=false,dr=false,d=0;const cl=()=>Math.min(innerHeight,Math.max(0,d));
  sheet.addEventListener('touchstart',e=>{if(e.touches.length!==1||e.target.closest('input,#top'))return;const sc=e.target.closest('#q,#ly');if(sc&&sc.scrollTop>0)return;on=true;dr=false;d=0;sx=e.touches[0].clientX;sy=e.touches[0].clientY;t0=performance.now()},{passive:true});
  sheet.addEventListener('touchmove',e=>{if(!on)return;const t=e.touches[0],dy=t.clientY-sy,dx=t.clientX-sx;
@@ -878,16 +859,13 @@ document.addEventListener('contextmenu',e=>{if(!(e.target.closest&&e.target.clos
   d=dy;sheet.style.transform=`translateY(${cl()}px)`;e.preventDefault()},{passive:false});
  const end=()=>{if(!on)return;on=false;if(!dr)return;dr=false;const v=cl()/Math.max(1,performance.now()-t0),k=cl();sheet.style.transition='';sheet.style.transform='';if(k>110||(k>40&&v>.5))closeSheet()};
  sheet.addEventListener('touchend',end);sheet.addEventListener('touchcancel',end)})();
-/* Evita que la página entera rebote o «salga volando»: solo se permite arrastrar dentro de zonas con scroll */
 document.addEventListener('touchmove',e=>{if(window.__NATIVE||e.touches.length>1)return;const t=e.target;if(t.closest&&t.closest('.tab,#push,#q,#ly,.hs,.scl,input,textarea'))return;e.preventDefault()},{passive:false});
-/* Deslizar desde el borde izquierdo para volver (sin botón «Atrás») */
 (()=>{const p=$('#push');let x0,y0,dx=0,on=false;
  p.addEventListener('touchstart',e=>{const t=e.touches[0];on=t.clientX<36;x0=t.clientX;y0=t.clientY;dx=0},{passive:true});
  p.addEventListener('touchmove',e=>{if(!on)return;const t=e.touches[0];dx=Math.min(innerWidth,t.clientX-x0);if(dx>0&&dx>Math.abs(t.clientY-y0)){p.style.transition='none';p.style.transform=`translateX(${dx}px)`}},{passive:true});
  p.addEventListener('touchend',()=>{if(!on)return;on=false;p.style.transition='';p.style.transform='';if(dx>90)closePush()})})();
 
 document.addEventListener('click',e=>{const b=e.target.closest('[data-pp],#pp,#np-like,#next,#prev');if(b){navigator.vibrate&&navigator.vibrate(8);if(b.id==='np-like'){setTimeout(()=>{const sv=b.querySelector('svg');if(sv&&sv.animate)sv.animate([{transform:'scale(1)'},{transform:'scale(1.45)',offset:.35},{transform:'scale(.88)',offset:.7},{transform:'scale(1)'}],{duration:500,easing:'cubic-bezier(.34,1.56,.64,1)'})},0);setTimeout(()=>navigator.vibrate&&navigator.vibrate(8),90)}}},true);
-/* ---------- Háptico, cabecera dinámica, esqueletos, temporizador, gestos ---------- */
 (()=>{if(navigator.vibrate)return;const l=document.createElement('label');l.style.cssText='position:fixed;left:-99px;top:-99px;opacity:0;pointer-events:none';l.innerHTML='<input type="checkbox" switch>';document.body.appendChild(l);try{Object.defineProperty(navigator,'vibrate',{value:()=>{l.click();return true},configurable:true})}catch(e){}})();
 let hl=0;const hp=()=>{const n=performance.now();if(n-hl>70){hl=n;navigator.vibrate&&navigator.vibrate(4)}};
 function hdr(s,v){const h=s.querySelector('h1');if(!h)return;const k=Math.min(1,Math.max(0,v/56)),b=$('#hb');h.style.transformOrigin='left';h.style.opacity=1-k;h.style.transform=`translateY(${-k*12}px) scale(${1-.12*k})`;b.textContent=h.textContent;b.style.opacity=k}
@@ -897,15 +875,12 @@ let SL=null;
 function sleepMenu(){const M=$('#menu'),mc=$('#mc');mc.innerHTML=`<div class="hd"><div class="m"><b>Temporizador de apagado</b><span>${SL?'Activo':'La música se pausará sola'}</span></div></div>`+[[15,'15 minutos'],[30,'30 minutos'],[45,'45 minutos'],[0,'Al terminar esta canción']].map(o=>`<button class="mi" data-z="${o[0]}">${o[1]}</button>`).join('')+(SL?'<button class="mi" data-z="x">Cancelar temporizador</button>':'');
  mc.onclick=e=>{const b=e.target.closest('[data-z]');if(!b)return;M.classList.remove('open');setSleep(b.dataset.z)};M.classList.add('open')}
 function setSleep(z){if(SL&&SL.t)clearTimeout(SL.t);SL=null;if(z==='x'){toast('Temporizador cancelado');return}z=+z;if(z){SL={t:setTimeout(()=>{halt();SL=null;toast('Música apagada')},z*6e4)};toast('Se apagará en '+z+' min')}else{SL={end:P.t&&P.t.id};toast('Se pausará al terminar esta canción')}}
-/* Mini-reproductor: desliza arriba para expandir, a los lados para saltar */
 (()=>{const m=$('#mini');let x0,y0,w=false;m.addEventListener('pointerdown',e=>{x0=e.clientX;y0=e.clientY;w=false});
  m.addEventListener('pointerup',e=>{const dx=e.clientX-x0,dy=e.clientY-y0;if(dy<-40&&Math.abs(dy)>Math.abs(dx)){w=true;openSheet()}else if(Math.abs(dx)>60){w=true;skip(dx<0?1:-1)}});
  m.addEventListener('click',e=>{if(w){w=false;e.stopPropagation()}},true)})();
-/* Cambiar de pestaña deslizando desde los bordes */
 (()=>{const m=$('#main');let x0,y0,e0=0;m.addEventListener('touchstart',e=>{const t=e.touches[0];x0=t.clientX;y0=t.clientY;e0=$('#push').classList.contains('open')?0:x0>innerWidth-30?1:x0<30?-1:0},{passive:true});
  m.addEventListener('touchend',e=>{if(!e0)return;const t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0,d=e0;e0=0;if(Math.abs(dx)<70||Math.abs(dy)>Math.abs(dx)/1.5)return;const c=TO.findIndex(k=>!$('#t-'+k).hidden),n=TO[c+(d===1&&dx<0?1:d===-1&&dx>0?-1:0)];if(n&&n!==TO[c])tab(n)},{passive:true})})();
 
-/* ---------- Crear listas, añadir canciones y páginas de artista ---------- */
 let QME=null;const getMe=async()=>QME||(QME=await api('/me'));
 function ask(title,ph,okText){return new Promise(res=>{
  const o=document.createElement('div');o.id='qm-dlg';
@@ -970,18 +945,16 @@ async function artistData(id,name){
  if(!al.length){const r=await api('/search?type=album&limit=10&q='+encodeURIComponent('artist:"'+name+'"')).catch(()=>null);
   al=((r&&r.albums&&r.albums.items)||[]).filter(x=>x&&x.artists&&x.artists.some(a=>a.id===id)).map(mkAl).filter(Boolean)}
  return {tr,al}}
-/* ---------- Arranque ---------- */
-function connectScreen(msg){$('#t-home').innerHTML=`<div class="empty"><h1>Q-Music</h1><p>${esc(msg||'Tu música de Spotify, con una interfaz pensada para iPhone. Requiere Spotify Premium.')}</p><button class="cn" data-connect>Conectar con Spotify</button>${/iP(hone|ad)/.test(navigator.userAgent)&&!navigator.standalone?'<p style="margin-top:18px;font-size:13px">Para verla a pantalla completa: Compartir → Agregar a inicio y deja activado «Abrir como app web».</p>':''}</div>`}
+function connectScreen(msg){$('#t-home').innerHTML=`<div class="empty"><h1>Q-Music</h1><p>${esc(msg||'Tu música de Spotify, con una interfaz pensada para iPhone. Funciona con o sin Premium gracias al motor alternativo.')}</p><button class="cn" data-connect>Conectar con Spotify</button>${/iP(hone|ad)/.test(navigator.userAgent)&&!navigator.standalone?'<p style="margin-top:18px;font-size:13px">Para verla a pantalla completa: Compartir → Agregar a inicio y deja activado «Abrir como app web».</p>':''}</div>`}
 function startPlayer(){
   window.onSpotifyWebPlaybackSDKReady=()=>{
     sp=new Spotify.Player({name:'Q-Music',getOAuthToken:cb=>token().then(cb),volume:1});
     sp.addListener('ready',({device_id})=>{dev=device_id;api('/me/player',{method:'PUT',body:JSON.stringify({device_ids:[device_id],play:false})}).catch(()=>{})});
     sp.addListener('player_state_changed',onState);
-    ['authentication_error','account_error','initialization_error'].forEach(k=>sp.addListener(k,e=>toast(k==='account_error'?'Se requiere Spotify Premium':e.message)));
+    ['authentication_error','account_error','initialization_error'].forEach(k=>sp.addListener(k,e=>toast(k==='account_error'?'Aviso: Cuenta Free detectada, usando motor alternativo':e.message)));
     sp.connect();
   };
   const s=document.createElement('script');s.src='https://sdk.scdn.co/spotify-player.js';document.head.appendChild(s);
-  /* Sincroniza nombre y carátula aunque no se toque nada (inicio, biblioteca, pantalla de bloqueo) */
   setInterval(async()=>{if(!sp)return;const s=await sp.getCurrentState().catch(()=>null);if(s)onState(s)},3000);
 }
 async function go(){const c=jl('qm.c',null);if(c){D.liked=c.l;D.total=c.n;D.pl=c.p;D.al=c.a;D.recent=c.r;[...D.liked,...D.recent].forEach(t=>R.set(t.id,t));D.liked.forEach(t=>liked.add(t.id));[...D.pl,...D.al].forEach(x=>C.set(x.kind+':'+x.id,x));$('#app').classList.remove('off');drawHome();drawLib()}
