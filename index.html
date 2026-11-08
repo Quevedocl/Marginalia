@@ -246,9 +246,23 @@ h1{padding-top:calc(18px + env(safe-area-inset-top,0px)*0)}
 .pop svg{animation:bump .5s var(--spr)}
 @keyframes bump{0%{transform:scale(1)}35%{transform:scale(1.45)}70%{transform:scale(.88)}100%{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){#glow::before,#glow::after,#art img{animation:none!important}}
+
+#hb{position:fixed;top:0;left:0;right:0;z-index:26;height:calc(env(safe-area-inset-top) + 46px);padding-top:env(safe-area-inset-top);display:flex;align-items:center;justify-content:center;font:700 17px var(--ser);color:#fff;opacity:0;pointer-events:none;background:color-mix(in srgb,color-mix(in srgb,var(--acc) 70%,#000) 88%,transparent);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%)}
+#app:has(#push.open) #hb,#app.off #hb{display:none}
+.sk{border-radius:8px;background:linear-gradient(90deg,#ececf0 25%,#f8f8fa 50%,#ececf0 75%);background-size:200% 100%;animation:shim 1.3s linear infinite}
+.skr{display:flex;gap:12px;align-items:center;margin:14px 0}
+@keyframes shim{to{background-position:-200% 0}}
+.eq{display:flex;align-items:flex-end;gap:3px;height:20px;margin-right:2px}
+.eq i{width:3px;height:100%;border-radius:2px;background:var(--acc);transform-origin:bottom;animation:eqb .9s ease-in-out infinite alternate}
+.eq i:nth-child(2){animation-duration:.65s;animation-delay:-.3s}.eq i:nth-child(3){animation-duration:1.1s;animation-delay:-.6s}.eq i:nth-child(4){animation-duration:.75s;animation-delay:-.2s}
+#sheet.pz .eq i{animation-play-state:paused;transform:scaleY(.25)}
+@keyframes eqb{from{transform:scaleY(.2)}to{transform:scaleY(1)}}
+#sheet.ly::before{filter:blur(50px) saturate(2.2);opacity:.9}
+#sheet.ly #ly p{font-size:34px;font-weight:800;font-family:var(--ser)}#sheet.ly #ly p.on{transform:scale(1.07)}
+#mini{touch-action:none}
 </style></head><body>
 <div id="app" class="off">
-  <main id="main">
+  <div id="hb"></div><main id="main">
     <section class="tab" id="t-home" aria-label="Inicio"></section>
     <section class="tab" id="t-lib" aria-label="Biblioteca" hidden></section>
     <section class="tab" id="t-search" aria-label="Buscar" hidden>
@@ -271,7 +285,7 @@ h1{padding-top:calc(18px + env(safe-area-inset-top,0px)*0)}
   <div id="top"><i></i></div>
   <div id="art"><img id="np-img" alt="" draggable="false"></div>
   <div id="q"></div><div id="ly"></div>
-  <div class="nph"><div class="m"><b id="np-t"></b><span id="np-a"></span></div><button class="rb" id="np-like" aria-label="Favoritos"></button><button class="rb" id="np-more" aria-label="Más opciones"></button></div>
+  <div class="nph"><div class="m"><b id="np-t"></b><span id="np-a"></span></div><div class="eq"><i></i><i></i><i></i><i></i></div><button class="rb" id="np-like" aria-label="Favoritos"></button><button class="rb" id="np-more" aria-label="Más opciones"></button></div>
   <div class="sc"><input id="seek" type="range" min="0" max="1000" value="0" aria-label="Posición"><div class="tm"><span id="el">0:00</span><span id="rm">-0:00</span></div></div>
   <div class="tp"><button class="ic" id="prev" aria-label="Anterior"></button><button class="ic big" id="pp" aria-label="Reproducir"></button><button class="ic" id="next" aria-label="Siguiente"></button></div>
   <div class="ex"><button class="t" id="shuf" aria-label="Aleatorio"></button><svg viewBox="0 0 24 24" class="f" style="color:var(--l2)"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/></svg><input id="vol" type="range" min="0" max="100" value="100" aria-label="Volumen"><button class="t" id="rep" aria-label="Repetir"></button><button class="t" id="lb" aria-label="Letra"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 11h16M4 16h9"/></svg></button><button class="t" id="qb" aria-label="Cola"></button></div>
@@ -327,7 +341,7 @@ function onState(s){
   const ch=!P.t||P.t.id!==t.id;
   Object.assign(P,{t,pos:s.position,t0:performance.now(),playing:!s.paused,shuf:s.shuffle,rep:s.repeat_mode});
   if(ch&&!liked.has(t.id))lib('GET',[t.id]).then(r=>{if(r&&r[0]){liked.add(t.id);paint()}}).catch(()=>{});
-  if(P.playing)wake();if(ch)rec(t);paint(ch);
+  if(P.playing)wake();if(ch){rec(t);if(SL&&SL.end&&SL.end!==t.id){sp.pause();SL=null;toast('Música apagada')}}paint(ch);
 }
 /* Un solo punto de actualización: mini-reproductor, hoja, lista y pantalla de bloqueo */
 function paint(ch){
@@ -377,8 +391,9 @@ function menu(id){
   <button class="mi" data-a="next">Reproducir a continuación${I.next2}</button>
   <button class="mi" data-a="like">${lk?'Quitar de Favoritas':'Añadir a Favoritas'}${lk?I.heartF:I.heart}</button>
   <button class="mi" data-a="story">Imagen para Stories<svg viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="3"/></svg></button>
+  <button class="mi" data-a="sleep">Temporizador de apagado<svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="7.5"/><path d="M12 9v4l2.5 2M9.5 3h5"/></svg></button>
   <button class="mi" data-a="open">Abrir en Spotify${I.sp}</button>`;
-  mc.onclick=e=>{const a=e.target.closest('[data-a]');if(!a)return;M.classList.remove('open');const k=a.dataset.a;if(k==='next')playNext(t);else if(k==='like')toggleLike(t);else if(k==='story')story(t);else window.open('https://open.spotify.com/track/'+t.id,'_blank')};
+  mc.onclick=e=>{const a=e.target.closest('[data-a]');if(!a)return;M.classList.remove('open');const k=a.dataset.a;if(k==='next')playNext(t);else if(k==='like')toggleLike(t);else if(k==='story')story(t);else if(k==='sleep')sleepMenu();else window.open('https://open.spotify.com/track/'+t.id,'_blank')};
   M.classList.add('open');
 }
 $('#menu').addEventListener('click',e=>{if(e.target.id==='menu')e.currentTarget.classList.remove('open')});
@@ -412,14 +427,14 @@ const items=async id=>{let r;try{r=await api('/playlists/'+id+'/items?limit=100'
 async function open(key){
   const [kind,id]=key.split(':'),p=$('#push');let c=C.get(key);
   if(kind==='liked')c={kind,name:'Favoritas',sub:D.total+' canciones',cover:''};
-  p.innerHTML=`<div class="bar"><button class="back" data-back>${I.back}Atrás</button></div>`;p.scrollTop=0;p.classList.add('open');
+  p.innerHTML=`<div class="bar"><button class="back" data-back>${I.back}Atrás</button></div>`;p.scrollTop=0;p.classList.add('open');p.insertAdjacentHTML('beforeend',SK);
   let tr=[];DC=null;
   try{
     if(kind==='liked')tr=D.liked;
     else if(kind==='pl'){tr=await items(id);DC=c}
     else{const a=await api('/albums/'+id);tr=a.tracks.items.map(x=>mk(x,a)).filter(Boolean);c=c||coll('al',a,'');DC=c}
-  }catch(e){p.insertAdjacentHTML('beforeend','<div class="empty">No se pudo cargar esta lista.</div>');return}
-  L.d=tr;
+  }catch(e){const k=$('#sk');k&&k.remove();p.insertAdjacentHTML('beforeend','<div class="empty">No se pudo cargar esta lista.</div>');return}
+  L.d=tr;{const k=$('#sk');k&&k.remove()}
   p.insertAdjacentHTML('beforeend',`<div class="hero">${kind==='liked'?`<div class="hrt">${I.heartF}</div>`:`<img src="${esc(c.cover)}" alt="">`}<h2>${esc(c.name)}</h2><p>${esc(c.sub||'')}</p><div class="btns"><button class="btn p" data-pa>${I.play}Reproducir</button><button class="btn" data-sh>${I.shuf}Aleatorio</button></div></div>${list(tr,'d')}`);
 }
 const closePush=()=>$('#push').classList.remove('open');
@@ -433,13 +448,13 @@ async function search(q){
 }
 $('#qi').addEventListener('input',e=>{clearTimeout(st);st=setTimeout(()=>search(e.target.value),350)});
 const TO=['home','lib','search','stats'];let tl='home';
-function pgIn(n){const e=$('#t-'+n);e.style.setProperty('--d',(TO.indexOf(n)>=TO.indexOf(tl)?22:-22)+'px');tl=n;e.classList.remove('in');void e.offsetWidth;e.classList.add('in')}
+function pgIn(n){const e=$('#t-'+n);e.style.setProperty('--d',(TO.indexOf(n)>=TO.indexOf(tl)?22:-22)+'px');tl=n;e.classList.remove('in');void e.offsetWidth;e.classList.add('in');hdr(e,e.scrollTop)}
 function tab(n){closePush();if(n==='stats')drawStats();['home','lib','search','stats'].forEach(k=>$('#t-'+k).hidden=k!==n);$$('.tb').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===n)));pgIn(n)}
 
 /* Cola de reproducción */
 async function queue(){
   const S=$('#sheet');S.classList.remove('ly');S.classList.toggle('q');paint();if(!S.classList.contains('q'))return;
-  const q=$('#q');q.innerHTML='<h2>A continuación</h2><div class="empty">Cargando…</div>';
+  const q=$('#q');q.innerHTML='<h2>A continuación</h2>'+SKR(5);
   try{const r=await api('/me/player/queue'),a=(r.queue||[]).slice(0,30).map(x=>mk(x)).filter(Boolean);L.q=a;
    q.innerHTML='<h2>A continuación</h2>'+(a.length?a.map((t,i)=>`<div class="row" data-id="${t.id}"><img src="${esc(t.sm)}" alt=""><div class="m"><b>${esc(t.name)}</b><span>${esc(t.artist)}</span></div></div>`).join(''):'<div class="empty">La cola está vacía.</div>')}
   catch(e){q.innerHTML='<h2>A continuación</h2><div class="empty">No se pudo cargar la cola.</div>'}
@@ -469,9 +484,9 @@ $('#shuf').onclick=()=>setShuf(!P.shuf);
 $('#rep').onclick=()=>{P.rep=(P.rep+1)%3;paint();api('/me/player/repeat?state='+['off','context','track'][P.rep]+'&device_id='+dev,{method:'PUT'}).catch(()=>{})};
 $('#qb').onclick=queue;
 const seek=$('#seek');
-seek.oninput=()=>{scrub=true;const p=seek.value/1000*P.t.dur;seek.style.setProperty('--p',seek.value/10+'%');$('#el').textContent=fmt(p);$('#rm').textContent='-'+fmt(P.t.dur-p)};
+seek.oninput=()=>{scrub=true;hp();const p=seek.value/1000*P.t.dur;seek.style.setProperty('--p',seek.value/10+'%');$('#el').textContent=fmt(p);$('#rm').textContent='-'+fmt(P.t.dur-p)};
 seek.onchange=()=>{const p=seek.value/1000*P.t.dur;P.pos=p;P.t0=performance.now();scrub=false;sp&&sp.seekTo(p)};
-const vl=$('#vol');vl.oninput=()=>{vl.style.setProperty('--p',vl.value+'%');vol=vl.value/100;sp&&sp.setVolume(vol)};vl.style.setProperty('--p','100%');
+const vl=$('#vol');vl.oninput=()=>{hp();vl.style.setProperty('--p',vl.value+'%');vol=vl.value/100;sp&&sp.setVolume(vol)};vl.style.setProperty('--p','100%');
 /* Arrastrar hacia abajo para cerrar */
 (()=>{let y0=null;const tp=$('#top');
  tp.addEventListener('pointerdown',e=>{y0=e.clientY;tp.setPointerCapture(e.pointerId);sheet.style.transition='none'});
@@ -523,7 +538,7 @@ async function story(t){toast('Creando imagen…');try{
  if(navigator.canShare&&navigator.canShare({files:[f]}))await navigator.share({files:[f]});else{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='q-music-story.png';a.click()}
 }catch(e){if(!e||e.name!=='AbortError')toast('No se pudo crear la imagen')}}
 /* Dock flotante: se oculta al hacer scroll y reaparece al detenerte */
-(()=>{const A=$('#app'),y=new WeakMap();let t;document.addEventListener('scroll',e=>{const s=e.target;if(!s.classList||!(s.classList.contains('tab')||s.id==='push'))return;const v=s.scrollTop;if(v<0||v>s.scrollHeight-s.clientHeight+1)return;const d=v-(y.get(s)||0);y.set(s,v);if(d>6&&v>40)A.classList.add('dh');else if(d<-6)A.classList.remove('dh');clearTimeout(t);t=setTimeout(()=>A.classList.remove('dh'),700)},true)})();
+(()=>{const A=$('#app'),y=new WeakMap();let t;document.addEventListener('scroll',e=>{const s=e.target;if(!s.classList||!(s.classList.contains('tab')||s.id==='push'))return;const v=s.scrollTop;if(s.classList.contains('tab'))hdr(s,v);if(v<0||v>s.scrollHeight-s.clientHeight+1)return;const d=v-(y.get(s)||0);y.set(s,v);if(d>6&&v>40)A.classList.add('dh');else if(d<-6)A.classList.remove('dh');clearTimeout(t);t=setTimeout(()=>A.classList.remove('dh'),700)},true)})();
 /* Menú radial: mantén pulsado y desliza (arriba: cola · derecha: favorita · izquierda: artista) */
 (()=>{let T,o=null,box=null,dir='',sup=false;
  const D=[['u',0,-1,'A continuación',I.next2],['r',1,0,'Favorita',I.heart],['l',-1,0,'Artista',ic('<circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/>')]];
@@ -557,7 +572,25 @@ async function story(t){toast('Creando imagen…');try{
  p.addEventListener('touchmove',e=>{if(!on)return;const t=e.touches[0];dx=t.clientX-x0;if(dx>0&&dx>Math.abs(t.clientY-y0)){p.style.transition='none';p.style.transform=`translateX(${dx}px)`}},{passive:true});
  p.addEventListener('touchend',()=>{if(!on)return;on=false;p.style.transition='';p.style.transform='';if(dx>90)closePush()})})();
 
-document.addEventListener('click',e=>{const b=e.target.closest('[data-pp],#pp,#np-like,#next,#prev');if(b){b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop')}},true);
+document.addEventListener('click',e=>{const b=e.target.closest('[data-pp],#pp,#np-like,#next,#prev');if(b){b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop');navigator.vibrate&&navigator.vibrate(8);if(b.id==='np-like')setTimeout(()=>navigator.vibrate&&navigator.vibrate(8),90)}},true);
+/* ---------- Háptico, cabecera dinámica, esqueletos, temporizador, gestos ---------- */
+(()=>{if(navigator.vibrate)return;const l=document.createElement('label');l.style.cssText='position:fixed;left:-99px;top:-99px;opacity:0;pointer-events:none';l.innerHTML='<input type="checkbox" switch>';document.body.appendChild(l);try{Object.defineProperty(navigator,'vibrate',{value:()=>{l.click();return true},configurable:true})}catch(e){}})();
+let hl=0;const hp=()=>{const n=performance.now();if(n-hl>70){hl=n;navigator.vibrate&&navigator.vibrate(4)}};
+function hdr(s,v){const h=s.querySelector('h1');if(!h)return;const k=Math.min(1,Math.max(0,v/56)),b=$('#hb');h.style.transformOrigin='left';h.style.opacity=1-k;h.style.transform=`translateY(${-k*12}px) scale(${1-.12*k})`;b.textContent=h.textContent;b.style.opacity=k}
+const SKR=n=>'<div class="skl">'+'<div class="skr"><div class="sk" style="width:50px;height:50px;border-radius:12px"></div><div style="flex:1"><div class="sk" style="height:14px;width:60%;margin:6px 0"></div><div class="sk" style="height:12px;width:35%"></div></div></div>'.repeat(n)+'</div>';
+const SK='<div id="sk"><div class="sk" style="width:100%;aspect-ratio:1;border-radius:28px;margin:6px 0 18px"></div>'+SKR(6)+'</div>';
+let SL=null;
+function sleepMenu(){const M=$('#menu'),mc=$('#mc');mc.innerHTML=`<div class="hd"><div class="m"><b>Temporizador de apagado</b><span>${SL?'Activo':'La música se pausará sola'}</span></div></div>`+[[15,'15 minutos'],[30,'30 minutos'],[45,'45 minutos'],[0,'Al terminar esta canción']].map(o=>`<button class="mi" data-z="${o[0]}">${o[1]}</button>`).join('')+(SL?'<button class="mi" data-z="x">Cancelar temporizador</button>':'');
+ mc.onclick=e=>{const b=e.target.closest('[data-z]');if(!b)return;M.classList.remove('open');setSleep(b.dataset.z)};M.classList.add('open')}
+function setSleep(z){if(SL&&SL.t)clearTimeout(SL.t);SL=null;if(z==='x'){toast('Temporizador cancelado');return}z=+z;if(z){SL={t:setTimeout(()=>{sp&&sp.pause();SL=null;toast('Música apagada')},z*6e4)};toast('Se apagará en '+z+' min')}else{SL={end:P.t&&P.t.id};toast('Se pausará al terminar esta canción')}}
+/* Mini-reproductor: desliza arriba para expandir, a los lados para saltar */
+(()=>{const m=$('#mini');let x0,y0,w=false;m.addEventListener('pointerdown',e=>{x0=e.clientX;y0=e.clientY;w=false});
+ m.addEventListener('pointerup',e=>{const dx=e.clientX-x0,dy=e.clientY-y0;if(dy<-40&&Math.abs(dy)>Math.abs(dx)){w=true;openSheet()}else if(Math.abs(dx)>60){w=true;sp&&(dx<0?sp.nextTrack():sp.previousTrack())}});
+ m.addEventListener('click',e=>{if(w){w=false;e.stopPropagation()}},true)})();
+/* Cambiar de pestaña deslizando desde los bordes */
+(()=>{const m=$('#main');let x0,y0,e0=0;m.addEventListener('touchstart',e=>{const t=e.touches[0];x0=t.clientX;y0=t.clientY;e0=$('#push').classList.contains('open')?0:x0>innerWidth-30?1:x0<30?-1:0},{passive:true});
+ m.addEventListener('touchend',e=>{if(!e0)return;const t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0,d=e0;e0=0;if(Math.abs(dx)<70||Math.abs(dy)>Math.abs(dx)/1.5)return;const c=TO.findIndex(k=>!$('#t-'+k).hidden),n=TO[c+(d===1&&dx<0?1:d===-1&&dx>0?-1:0)];if(n&&n!==TO[c])tab(n)},{passive:true})})();
+
 /* ---------- Arranque ---------- */
 function connectScreen(msg){$('#t-home').innerHTML=`<div class="empty"><h1>Q-Music</h1><p>${esc(msg||'Tu música de Spotify, con una interfaz pensada para iPhone. Requiere Spotify Premium.')}</p><button class="cn" data-connect>Conectar con Spotify</button>${/iP(hone|ad)/.test(navigator.userAgent)&&!navigator.standalone?'<p style="margin-top:18px;font-size:13px">Para verla a pantalla completa: Compartir → Agregar a inicio y deja activado «Abrir como app web».</p>':''}</div>`}
 function startPlayer(){
@@ -572,13 +605,13 @@ function startPlayer(){
   /* Sincroniza nombre y carátula aunque no se toque nada (inicio, biblioteca, pantalla de bloqueo) */
   setInterval(async()=>{if(!sp)return;const s=await sp.getCurrentState().catch(()=>null);if(s)onState(s)},3000);
 }
-async function go(){
+async function go(){const c=jl('qm.c',null);if(c){D.liked=c.l;D.total=c.n;D.pl=c.p;D.al=c.a;D.recent=c.r;[...D.liked,...D.recent].forEach(t=>R.set(t.id,t));D.liked.forEach(t=>liked.add(t.id));[...D.pl,...D.al].forEach(x=>C.set(x.kind+':'+x.id,x));$('#app').classList.remove('off');drawHome();drawLib()}
   const [lk,pl,al,rc]=await Promise.all([api('/me/tracks?limit=50'),api('/me/playlists?limit=50'),api('/me/albums?limit=50').catch(()=>({items:[]})),api('/me/player/recently-played?limit=30').catch(()=>({items:[]}))]);
   D.liked=lk.items.map(i=>mk(i.track)).filter(Boolean);D.total=lk.total||D.liked.length;D.liked.forEach(t=>liked.add(t.id));
   D.pl=pl.items.filter(Boolean).map(p=>coll('pl',p,(p.owner&&p.owner.display_name)||'')).filter(Boolean);
   D.al=al.items.map(i=>i.album&&coll('al',i.album,(i.album.artists||[]).map(a=>a.name).join(', '))).filter(Boolean);
   const seen=new Set();D.recent=rc.items.map(i=>mk(i.track)).filter(t=>t&&!seen.has(t.id)&&seen.add(t.id));
-  $('#app').classList.remove('off');drawHome();drawLib();startPlayer();drawRec().catch(()=>{});
+  try{localStorage.setItem('qm.c',JSON.stringify({l:D.liked.slice(0,50),n:D.total,p:D.pl,a:D.al,r:D.recent.slice(0,12)}))}catch(e){}$('#app').classList.remove('off');drawHome();drawLib();startPlayer();drawRec().catch(()=>{});
   (async()=>{let o=50;while(D.liked.length<D.total&&o<500){const r=await api('/me/tracks?limit=50&offset='+o).catch(()=>null);if(!r||!r.items.length)break;r.items.forEach(i=>{const t=mk(i.track);if(t){D.liked.push(t);liked.add(t.id)}});o+=50}drawLib()})();
 }
 async function init(){
