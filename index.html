@@ -2,11 +2,11 @@
 <html lang="es"><head><meta charset="utf-8">
 <title>Q-Music</title>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#eef0fb">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Q-Music">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="apple-touch-icon" href="margen-icon-1024.png">
 <link rel="icon" href="margen-icon-1024.png">
 <style>
@@ -124,6 +124,45 @@ input[type=range]:active::-webkit-slider-runnable-track{height:8px;border-radius
 .bars i{width:100%;border-radius:6px 6px 2px 2px;background:linear-gradient(var(--acc),#ff7a8a)}
 .ta{position:relative;display:flex;justify-content:space-between;padding:11px 14px;border-radius:12px;background:var(--fill);margin:6px 0;overflow:hidden}
 .ta i{position:absolute;inset:0 auto 0 0;background:rgba(250,45,72,.35)}.ta b,.ta span{position:relative;font-weight:500}
+
+/* ===== Q-Music · Light Glass ===== */
+:root{color-scheme:light;--acc:#5b4bff;--acc2:#00c2a8;--l1:#14142b;--l2:rgba(20,20,43,.62);--l3:rgba(20,20,43,.35);--sep:rgba(20,20,43,.08);--fill:rgba(255,255,255,.55);--f:ui-rounded,"SF Pro Rounded",-apple-system,system-ui,sans-serif;--gl:rgba(255,255,255,.58);--gb:rgba(255,255,255,.9);--sh:0 8px 28px rgba(70,60,160,.14)}
+html{background:#eef0fb}body{color:var(--l1);background:#eef0fb radial-gradient(60% 40% at 0% 0%,rgba(130,110,255,.4),transparent 70%) fixed,radial-gradient(55% 40% at 100% 22%,rgba(0,205,185,.3),transparent 70%) fixed,radial-gradient(70% 45% at 30% 100%,rgba(255,150,200,.34),transparent 70%) fixed}
+#app{background:none}.tab{overflow-x:hidden}
+h1{font-size:36px;font-weight:800;letter-spacing:-.6px}h2{font-size:19px;font-weight:700;letter-spacing:-.2px}
+.card{flex-basis:156px}.card img{width:156px;height:156px;border-radius:26px;box-shadow:var(--sh);background:#dfe2f2}
+.row,.lrow{background:var(--gl);border:.5px solid var(--gb);border-radius:22px;padding:8px 10px;margin:8px 0;min-height:68px;box-shadow:0 3px 14px rgba(70,60,160,.07)}
+.row::after,.lrow::after{display:none}
+.row img,.lrow img,.lrow .hrt{width:52px;height:52px;border-radius:15px;background:#dfe2f2}
+.hrt{background:linear-gradient(135deg,var(--acc),var(--acc2))!important}
+.hero img,.hero .hrt{border-radius:34px;box-shadow:0 24px 50px rgba(91,75,255,.28)}
+.btn{background:var(--gl);border:.5px solid var(--gb);color:var(--acc);box-shadow:var(--sh);border-radius:17px}
+.btn.p,.cn{background:linear-gradient(135deg,var(--acc),#8272ff);color:#fff;border:0}
+.field{background:var(--gl);border:.5px solid var(--gb);height:46px;border-radius:17px}.field input{color:var(--l1)}.empty h1{color:var(--l1)}
+#push{background:linear-gradient(#f4f5fd,#eef0fb)}
+#tabbar{background:rgba(255,255,255,.55);border:.5px solid rgba(255,255,255,.95);box-shadow:0 14px 40px rgba(70,60,160,.25),inset 0 1px 0 #fff}
+.tb[aria-selected=true]{background:rgba(91,75,255,.13)}
+#mini{background:rgba(255,255,255,.62);border:.5px solid rgba(255,255,255,.95);box-shadow:0 10px 30px rgba(70,60,160,.2);border-radius:26px;-webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%)}#mini img{border-radius:15px}
+#sheet{background:#eef0fb}#sheet::before{filter:blur(70px) saturate(1.7) brightness(1.1);opacity:.9}#sheet::after{background:linear-gradient(rgba(255,255,255,.35),rgba(255,255,255,.68))}
+#top i{background:rgba(20,20,43,.25)}#art img{border-radius:34px;box-shadow:0 30px 60px rgba(40,30,120,.3)}
+.rb{background:rgba(255,255,255,.65);border:.5px solid #fff}.rb.on{background:var(--l1);color:#fff}
+input[type=range]::-webkit-slider-runnable-track{background:linear-gradient(90deg,var(--acc) var(--p),rgba(20,20,43,.12) var(--p))}
+#menu{background:rgba(20,20,43,.25)}#mc{background:rgba(255,255,255,.8);border:.5px solid #fff;color:var(--l1)}.mi:active{background:rgba(91,75,255,.1)}
+#toast{background:rgba(255,255,255,.88);color:var(--l1);box-shadow:var(--sh)}
+#ly p{color:rgba(20,20,43,.3)}#ly p.on{color:var(--l1)}
+.ta{background:var(--gl);border:.5px solid var(--gb)}.ta i{background:rgba(91,75,255,.22)}
+#rad{background:rgba(238,240,251,.5)}
+#rad .ring{width:140px;height:140px;margin:-70px;border-color:#fff;background:radial-gradient(circle,rgba(255,255,255,.2),rgba(255,255,255,.6));box-shadow:0 10px 40px rgba(91,75,255,.3),inset 0 1px 0 #fff}
+#rad .o{background:rgba(255,255,255,.85);color:var(--l1);border-color:#fff;box-shadow:var(--sh)}#rad .o.on{background:var(--acc);color:#fff}
+#rad .o span{top:68px;padding:3px 10px;border-radius:12px;background:rgba(255,255,255,.9);color:var(--l1);box-shadow:var(--sh)}#rad .o[data-d=u] span{top:auto;bottom:68px}
+.row[data-l]{touch-action:pan-y}
+.sw{position:absolute;top:0;bottom:0;width:140px;display:flex;align-items:center;border-radius:22px;color:#fff;opacity:.8;transition:opacity .2s}
+.sw svg{transition:transform .2s}.sw.on{opacity:1}.sw.on svg{transform:scale(1.3)}
+.sw.r{right:100%;justify-content:flex-end;padding-right:22px;background:linear-gradient(90deg,#a99dff,var(--acc))}
+.sw.l{left:100%;padding-left:22px;background:linear-gradient(270deg,#6fe6d0,#10b49c)}
+html,body{height:var(--vh,100%)}
+#app,#sheet,#menu{height:var(--vh,100dvh);bottom:auto}
+#tabbar{position:absolute}
 </style></head><body>
 <div id="app" class="off">
   <main id="main">
@@ -159,6 +198,7 @@ input[type=range]:active::-webkit-slider-runnable-track{height:8px;border-radius
 
 <script>
 (()=>{'use strict';
+const vh=()=>{const h=Math.max(innerHeight,(window.visualViewport||{}).height||0);document.documentElement.style.setProperty('--vh',h+'px')};vh();addEventListener('resize',vh);addEventListener('orientationchange',()=>setTimeout(vh,250));addEventListener('pageshow',vh);window.visualViewport&&visualViewport.addEventListener('resize',vh);
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt=ms=>{const s=Math.max(0,Math.floor(ms/1000));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
@@ -389,8 +429,8 @@ async function story(t){toast('Creando imagen…');try{
  const D=[['u',0,-1,'A continuación',I.next2],['r',1,0,'Favorita',I.heart],['l',-1,0,'Artista',ic('<circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/>')]];
  const cl=()=>{clearTimeout(T);if(box){box.remove();box=null}o=null;dir=''};
  document.addEventListener('pointerdown',e=>{sup=false;const el=e.target.closest('[data-id][data-l]');if(!el||e.target.closest('[data-m]'))return;const x=e.clientX,y=e.clientY;o={el,x,y};clearTimeout(T);
-  T=setTimeout(()=>{if(!o||!R.get(el.dataset.id))return;sup=true;navigator.vibrate&&navigator.vibrate(12);const cx=Math.min(innerWidth-100,Math.max(100,x)),cy=Math.max(130,y);
-   box=document.createElement('div');box.id='rad';box.innerHTML=`<div class="ring" style="left:${cx}px;top:${cy}px"></div>`+D.map(d=>`<div class="o" data-d="${d[0]}" style="left:${cx+d[1]*95}px;top:${cy+d[2]*95}px">${d[4]}<span>${d[3]}</span></div>`).join('');document.body.appendChild(box)},380)});
+  T=setTimeout(()=>{if(!o||!R.get(el.dataset.id))return;sup=true;navigator.vibrate&&navigator.vibrate(12);const cx=Math.min(innerWidth-135,Math.max(135,x)),cy=Math.min(innerHeight-150,Math.max(150,y));
+   box=document.createElement('div');box.id='rad';box.innerHTML=`<div class="ring" style="left:${cx}px;top:${cy}px"></div>`+D.map(d=>`<div class="o" data-d="${d[0]}" style="left:${cx+d[1]*100}px;top:${cy+d[2]*100}px">${d[4]}<span>${d[3]}</span></div>`).join('');document.body.appendChild(box)},380)});
  document.addEventListener('pointermove',e=>{if(!o)return;const dx=e.clientX-o.x,dy=e.clientY-o.y;if(!box){if(Math.hypot(dx,dy)>10)cl();return}
   const n=Math.hypot(dx,dy)>38?(Math.abs(dx)>Math.abs(dy)?(dx>0?'r':'l'):(dy<0?'u':'')):'';if(n!==dir){dir=n;$$('.o',box).forEach(b=>b.classList.toggle('on',b.dataset.d===n));if(n&&navigator.vibrate)navigator.vibrate(6)}});
  const end=()=>{const d=dir,el=o&&o.el,had=!!box;cl();if(!had||!el)return;const t=R.get(el.dataset.id);if(!t)return;
@@ -399,6 +439,18 @@ async function story(t){toast('Creando imagen…');try{
  document.addEventListener('click',e=>{if(sup){sup=false;e.stopPropagation();e.preventDefault()}},true);
  document.addEventListener('contextmenu',e=>{if(e.target.closest('[data-id][data-l]'))e.preventDefault()});
  document.addEventListener('touchmove',e=>{if(box)e.preventDefault()},{passive:false})})();
+/* Deslizar fila: derecha = favorita · izquierda = a continuación */
+(()=>{let r=null,x0,y0,dx=0,lk=0,sw=false;
+ document.addEventListener('pointerdown',e=>{sw=false;const el=e.target.closest('.row[data-l]');if(!el||e.target.closest('[data-m]'))return;r=el;x0=e.clientX;y0=e.clientY;dx=0;lk=0});
+ document.addEventListener('pointermove',e=>{if(!r)return;const mx=e.clientX-x0,my=e.clientY-y0;
+  if(!lk){if(Math.abs(mx)>12&&Math.abs(mx)>Math.abs(my)*1.6){lk=1;r.style.transition='none';r.insertAdjacentHTML('beforeend','<div class="sw r">'+I.heartF+'</div><div class="sw l">'+I.next2+'</div>')}else if(Math.abs(my)>10)r=null;return}
+  dx=Math.max(-130,Math.min(130,mx));r.style.transform=`translateX(${dx}px)`;const a=Math.abs(dx)>=80;
+  $$('.sw',r).forEach(b=>b.classList.toggle('on',a&&b.classList.contains(dx>0?'r':'l')))});
+ const end=()=>{if(!r)return;const el=r,d=dx,l=lk;r=null;if(!l)return;sw=true;el.style.transition='transform .35s var(--ios)';el.style.transform='';
+  setTimeout(()=>{el.style.transition='';$$('.sw',el).forEach(b=>b.remove())},380);
+  const t=R.get(el.dataset.id);if(!t||Math.abs(d)<80)return;navigator.vibrate&&navigator.vibrate(10);d>0?toggleLike(t):playNext(t)};
+ document.addEventListener('pointerup',end);document.addEventListener('pointercancel',end);
+ document.addEventListener('click',e=>{if(sw){sw=false;e.stopPropagation();e.preventDefault()}},true)})();
 /* Deslizar desde el borde izquierdo para volver (sin botón «Atrás») */
 (()=>{const p=$('#push');let x0,y0,dx=0,on=false;
  p.addEventListener('touchstart',e=>{const t=e.touches[0];on=t.clientX<36;x0=t.clientX;y0=t.clientY;dx=0},{passive:true});
