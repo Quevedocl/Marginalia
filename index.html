@@ -260,6 +260,32 @@ h1{padding-top:calc(18px + env(safe-area-inset-top,0px)*0)}
 #sheet.ly::before{filter:blur(50px) saturate(2.2);opacity:.9}
 #sheet.ly #ly p{font-size:34px;font-weight:800;font-family:var(--ser)}#sheet.ly #ly p.on{transform:scale(1.07)}
 #mini{touch-action:none}
+
+/* ===== Ajustes v2: estabilidad del scroll, notch, radios, fundido de imágenes y profundidad ===== */
+/* Bug 1 · la página no rebota ni se escapa; cada zona con scroll contiene su propio desplazamiento */
+html,body{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:none}
+.tab,#push,#q,#ly{overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch}
+#top{touch-action:none}
+/* Notch / Isla Dinámica: safe-area + margen holgado (mín. 48px) y márgenes laterales fijos de 20px */
+#app{padding-top:0}
+.tab{padding:calc(env(safe-area-inset-top,0px) + 48px) 20px 28px}
+#push{padding:calc(env(safe-area-inset-top,0px) + 8px) 20px 28px}
+.tab h1{padding-top:0}
+/* Jerarquía: títulos menos pesados y con aire lateral */
+h1{font:600 40px/1.05 var(--ser);letter-spacing:-1px;padding:0 0 12px;overflow-wrap:anywhere}
+.empty h1{font-size:36px}
+/* Radios unificados: 22px tarjetas · 12px filas internas */
+.card img,.card .hrt{border-radius:22px}
+.row img,.lrow img,.lrow .hrt,#mini img,#mc .hd img{border-radius:12px}
+.card img,.hero img,.row img,.lrow img{overflow:hidden}
+/* Bug 2 · sin salto de layout y sin parpadeo: espacio reservado + fundido al cargar */
+.card img,.hero img{aspect-ratio:1}
+.card img,.hero img,.row img,.lrow img{opacity:0;transition:opacity .35s ease}
+.card img.ld,.hero img.ld,.row img.ld,.lrow img.ld{opacity:1}
+/* Mini-reproductor: separado de la barra, con sombra profunda y borde translúcido nítido */
+#mini{margin:0 16px calc(env(safe-area-inset-bottom,0px) + 92px);border:1px solid rgba(255,255,255,.9);box-shadow:0 16px 32px rgba(0,0,0,.35),0 0 0 .5px rgba(0,0,0,.08),inset 0 1px 0 rgba(255,255,255,.95)}
+#app.dh #mini{margin-bottom:calc(env(safe-area-inset-bottom,0px) + 8px)}
+@media (prefers-reduced-motion:reduce){.card img,.hero img,.row img,.lrow img{transition:none}}
 </style></head><body>
 <div id="app" class="off">
   <div id="hb"></div><main id="main">
@@ -298,6 +324,11 @@ h1{padding-top:calc(18px + env(safe-area-inset-top,0px)*0)}
 (()=>{'use strict';
 const vh=()=>{const h=Math.max(innerHeight,(window.visualViewport||{}).height||0);document.documentElement.style.setProperty('--vh',h+'px')};vh();addEventListener('resize',vh);addEventListener('orientationchange',()=>setTimeout(vh,250));addEventListener('pageshow',vh);window.visualViewport&&visualViewport.addEventListener('resize',vh);
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+/* Imágenes sin parpadeo: arrancan en opacity 0 y se funden solo cuando ya están cargadas */
+{const ok=i=>i.classList.add('ld');
+ document.addEventListener('load',e=>{if(e.target.tagName==='IMG')ok(e.target)},true);
+ document.addEventListener('error',e=>{if(e.target.tagName==='IMG')ok(e.target)},true);
+ new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes){if(n.nodeType!==1)continue;(n.tagName==='IMG'?[n]:[...n.querySelectorAll('img')]).forEach(i=>{if(i.complete&&i.naturalWidth)ok(i)})}}).observe(document.documentElement,{childList:true,subtree:true})}
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt=ms=>{const s=Math.max(0,Math.floor(ms/1000));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
 const ic=(d,f)=>`<svg viewBox="0 0 24 24"${f?' class="f"':''}>${d}</svg>`;
@@ -329,6 +360,15 @@ const lib=(m,ids)=>{const u=ids.map(i=>'spotify:track:'+i).join(',');return api(
 
 /* ---------- Estado de reproducción ---------- */
 const P={t:null,pos:0,t0:0,playing:false,shuf:false,rep:0};let sp=null,dev='',vol=1,scrub=false;
+/* Reproductor secundario (iframe #yt-player): siempre se destruye antes de crear el siguiente,
+   así nunca suena ni un instante la canción anterior */
+let pend=null,muted=false,mt;
+const vset=v=>{try{sp&&Promise.resolve(sp.setVolume(v)).catch(()=>{})}catch(e){}};
+function ytStop(){const o=document.getElementById('yt-player');if(o){try{o.src='about:blank'}catch(e){}o.remove()}}
+function ytPlay(t){ytStop();if(!t)return;const y=document.createElement('iframe');y.id='yt-player';y.dataset.tid=t.id;
+  y.style='position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;';y.allow='autoplay; encrypted-media';
+  y.src=`https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(t.name+' '+t.artist)}&autoplay=1`;document.body.appendChild(y)}
+function unmute(d){if(!muted)return;muted=false;clearTimeout(mt);mt=setTimeout(()=>vset(vol),d)}
 const now=()=>P.t?Math.min(P.t.dur||1e9,P.pos+(P.playing?performance.now()-P.t0:0)):0;
 function wav(){const n=8000,b=new Uint8Array(44+n),v=new DataView(b.buffer),w=(o,s)=>[...s].forEach((c,i)=>v.setUint8(o+i,c.charCodeAt(0)));w(0,'RIFF');v.setUint32(4,36+n,true);w(8,'WAVEfmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,8000,true);v.setUint32(28,8000,true);v.setUint16(32,1,true);v.setUint16(34,8,true);w(36,'data');v.setUint32(40,n,true);b.fill(128,44);return URL.createObjectURL(new Blob([b],{type:'audio/wav'}))}
 const silent=new Audio(wav());silent.loop=true;silent.setAttribute('playsinline','');
@@ -337,10 +377,13 @@ let tt;function toast(s){const e=$('#toast');e.textContent=s;e.classList.add('on
 
 function onState(s){
   const c=s&&s.track_window&&s.track_window.current_track;if(!c)return;
+  /* Mientras se carga la pista pedida, ignora estados rezagados de la canción anterior */
+  if(pend){if(c.id===pend.id||(c.linked_from&&c.linked_from.id===pend.id)||performance.now()>pend.until)pend=null;else return}
   const t=R.get(c.id)||mk(c);if(!t.dur)t.dur=s.duration;
   const ch=!P.t||P.t.id!==t.id;
   Object.assign(P,{t,pos:s.position,t0:performance.now(),playing:!s.paused,shuf:s.shuffle,rep:s.repeat_mode});
   if(ch&&!liked.has(t.id))lib('GET',[t.id]).then(r=>{if(r&&r[0]){liked.add(t.id);paint()}}).catch(()=>{});
+  if(ch){unmute(150);const y=document.getElementById('yt-player');if(y&&y.dataset.tid!==t.id)ytStop()}
   if(P.playing)wake();if(ch){rec(t);if(SL&&SL.end&&SL.end!==t.id){sp.pause();SL=null;toast('Música apagada')}}paint(ch);
 }
 /* Un solo punto de actualización: mini-reproductor, hoja, lista y pantalla de bloqueo */
@@ -369,17 +412,12 @@ if(navigator.mediaSession){const h=(a,f)=>{try{navigator.mediaSession.setActionH
 /* ---------- Acciones ---------- */
 async function start(body,t){
   if(sp) { sp.activateElement(); wake(); }
-  if(t){P.t=t;P.pos=0;P.t0=performance.now();P.playing=true;paint(true)}
-  let yt = document.getElementById('yt-player');
-  if(!yt) {
-    yt = document.createElement('iframe');
-    yt.id = 'yt-player';
-    yt.style = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;';
-    yt.allow = 'autoplay; encrypted-media';
-    document.body.appendChild(yt);
+  if(t){
+    ytStop();                                   /* corta ya el reproductor secundario anterior */
+    if(sp){muted=true;clearTimeout(mt);vset(0)} /* silencia la pista previa de Spotify hasta que cargue la nueva */
+    pend={id:t.id,until:performance.now()+3500};
+    P.t=t;P.pos=0;P.t0=performance.now();P.playing=true;paint(true);ytPlay(t);
   }
-  if(t) yt.src = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(t.name + ' ' + t.artist)}&autoplay=1`;
-  
   try{
     if(sp&&dev) await api('/me/player/play?device_id='+dev,{method:'PUT',body:JSON.stringify(body)});
   }catch(e){
@@ -389,6 +427,8 @@ async function start(body,t){
     } else {
       toast('No se pudo reproducir');
     }
+  }finally{
+    if(t&&sp){clearTimeout(mt);mt=setTimeout(()=>{muted=false;pend=null;vset(vol)},1600)}  /* respaldo: el volumen vuelve aunque no llegue estado nuevo */
   }
 }
 const setShuf=s=>{P.shuf=s;paint();return api('/me/player/shuffle?state='+s+'&device_id='+dev,{method:'PUT'}).catch(()=>{})};
@@ -497,8 +537,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('[role=button]')){e.preventDefault();e.target.click()}if(e.key==='Escape'){closeSheet();closePush()}});
 $('#pp').onclick=()=>{
   P.playing = !P.playing;
-  let yt = document.getElementById('yt-player');
-  if(yt) yt.src = P.playing && P.t ? `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(P.t.name + ' ' + P.t.artist)}&autoplay=1` : '';
+  if(P.playing && P.t) ytPlay(P.t); else ytStop();
   if(sp) { sp.activateElement(); wake(); sp.togglePlay(); }
   paint(false);
 };
@@ -514,8 +553,11 @@ const vl=$('#vol');vl.oninput=()=>{hp();vl.style.setProperty('--p',vl.value+'%')
 /* Arrastrar hacia abajo para cerrar */
 (()=>{let y0=null;const tp=$('#top');
  tp.addEventListener('pointerdown',e=>{y0=e.clientY;tp.setPointerCapture(e.pointerId);sheet.style.transition='none'});
- tp.addEventListener('pointermove',e=>{if(y0!=null)sheet.style.transform=`translateY(${Math.max(0,e.clientY-y0)}px)`});
- const end=e=>{if(y0==null)return;const d=e.clientY-y0;y0=null;sheet.style.transition='';sheet.style.transform='';if(d>110)closeSheet()};
+ /* El desplazamiento se acota entre 0 y el alto de pantalla: un gesto brusco ya no lanza la hoja fuera */
+ let t0=0;const cl=e=>Math.min(innerHeight,Math.max(0,e.clientY-y0));
+ tp.addEventListener('pointerdown',()=>{t0=performance.now()});
+ tp.addEventListener('pointermove',e=>{if(y0!=null)sheet.style.transform=`translateY(${cl(e)}px)`});
+ const end=e=>{if(y0==null)return;const d=cl(e),v=d/Math.max(1,performance.now()-t0);y0=null;sheet.style.transition='';sheet.style.transform='';if(d>110||(d>40&&v>.6))closeSheet()};
  tp.addEventListener('pointerup',end);tp.addEventListener('pointercancel',end);tp.addEventListener('click',closeSheet)})();
 
 
@@ -590,10 +632,12 @@ async function story(t){toast('Creando imagen…');try{
   const t=R.get(el.dataset.id);if(!t||Math.abs(d)<80)return;navigator.vibrate&&navigator.vibrate(10);if(P.t&&t.id===P.t.id&&sp){d>0?sp.previousTrack():sp.nextTrack()}else d>0?toggleLike(t):playNext(t)};
  document.addEventListener('pointerup',end);document.addEventListener('pointercancel',end);
  document.addEventListener('click',e=>{if(sw){sw=false;e.stopPropagation();e.preventDefault()}},true)})();
+/* Evita que la página entera rebote o «salga volando»: solo se permite arrastrar dentro de zonas con scroll */
+document.addEventListener('touchmove',e=>{if(e.touches.length>1)return;const t=e.target;if(t.closest&&t.closest('.tab,#push,#q,#ly,.hs,input,textarea'))return;e.preventDefault()},{passive:false});
 /* Deslizar desde el borde izquierdo para volver (sin botón «Atrás») */
 (()=>{const p=$('#push');let x0,y0,dx=0,on=false;
  p.addEventListener('touchstart',e=>{const t=e.touches[0];on=t.clientX<36;x0=t.clientX;y0=t.clientY;dx=0},{passive:true});
- p.addEventListener('touchmove',e=>{if(!on)return;const t=e.touches[0];dx=t.clientX-x0;if(dx>0&&dx>Math.abs(t.clientY-y0)){p.style.transition='none';p.style.transform=`translateX(${dx}px)`}},{passive:true});
+ p.addEventListener('touchmove',e=>{if(!on)return;const t=e.touches[0];dx=Math.min(innerWidth,t.clientX-x0);if(dx>0&&dx>Math.abs(t.clientY-y0)){p.style.transition='none';p.style.transform=`translateX(${dx}px)`}},{passive:true});
  p.addEventListener('touchend',()=>{if(!on)return;on=false;p.style.transition='';p.style.transform='';if(dx>90)closePush()})})();
 
 document.addEventListener('click',e=>{const b=e.target.closest('[data-pp],#pp,#np-like,#next,#prev');if(b){b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop');navigator.vibrate&&navigator.vibrate(8);if(b.id==='np-like')setTimeout(()=>navigator.vibrate&&navigator.vibrate(8),90)}},true);
@@ -630,12 +674,13 @@ function startPlayer(){
   setInterval(async()=>{if(!sp)return;const s=await sp.getCurrentState().catch(()=>null);if(s)onState(s)},3000);
 }
 async function go(){const c=jl('qm.c',null);if(c){D.liked=c.l;D.total=c.n;D.pl=c.p;D.al=c.a;D.recent=c.r;[...D.liked,...D.recent].forEach(t=>R.set(t.id,t));D.liked.forEach(t=>liked.add(t.id));[...D.pl,...D.al].forEach(x=>C.set(x.kind+':'+x.id,x));$('#app').classList.remove('off');drawHome();drawLib()}
+  const sg=()=>JSON.stringify([D.pl.map(x=>x.id),D.al.map(x=>x.id),D.recent.slice(0,12).map(t=>t.id),D.liked.slice(0,10).map(t=>t.id),D.total]),s0=c?sg():null;
   const [lk,pl,al,rc]=await Promise.all([api('/me/tracks?limit=50'),api('/me/playlists?limit=50'),api('/me/albums?limit=50').catch(()=>({items:[]})),api('/me/player/recently-played?limit=30').catch(()=>({items:[]}))]);
   D.liked=lk.items.map(i=>mk(i.track)).filter(Boolean);D.total=lk.total||D.liked.length;D.liked.forEach(t=>liked.add(t.id));
   D.pl=pl.items.filter(Boolean).map(p=>coll('pl',p,(p.owner&&p.owner.display_name)||'')).filter(Boolean);
   D.al=al.items.map(i=>i.album&&coll('al',i.album,(i.album.artists||[]).map(a=>a.name).join(', '))).filter(Boolean);
   const seen=new Set();D.recent=rc.items.map(i=>mk(i.track)).filter(t=>t&&!seen.has(t.id)&&seen.add(t.id));
-  try{localStorage.setItem('qm.c',JSON.stringify({l:D.liked.slice(0,50),n:D.total,p:D.pl,a:D.al,r:D.recent.slice(0,12)}))}catch(e){}$('#app').classList.remove('off');drawHome();drawLib();startPlayer();drawRec().catch(()=>{});
+  try{localStorage.setItem('qm.c',JSON.stringify({l:D.liked.slice(0,50),n:D.total,p:D.pl,a:D.al,r:D.recent.slice(0,12)}))}catch(e){}$('#app').classList.remove('off');if(!s0||sg()!==s0){drawHome();drawLib()}startPlayer();drawRec().catch(()=>{});
   (async()=>{let o=50;while(D.liked.length<D.total&&o<500){const r=await api('/me/tracks?limit=50&offset='+o).catch(()=>null);if(!r||!r.items.length)break;r.items.forEach(i=>{const t=mk(i.track);if(t){D.liked.push(t);liked.add(t.id)}});o+=50}drawLib()})();
 }
 async function init(){
