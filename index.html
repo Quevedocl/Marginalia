@@ -628,8 +628,8 @@ addEventListener('resize',()=>stage.style.setProperty('--H',stage.clientHeight+'
 /* ---------- Spotify (OAuth PKCE + Web Playback SDK) y Supabase ---------- */
 const CFG={
   spotifyClientId:'',   // Spotify Developer Dashboard → tu app → Client ID
-  supabaseUrl:'',       // https://xxxx.supabase.co
-  supabaseKey:''        // clave anon / publishable
+  supabaseUrl:'https://atgteivjjsyjmqvbzzwd.supabase.co',       // https://xxxx.supabase.co
+  supabaseKey:'sb_publishable_cgBlHI7cyeabNdWQpb7deQ_WR2vdEFp'        // clave anon / publishable
 };
 const REDIRECT=location.origin+location.pathname;
 const SCOPES='streaming user-read-email user-read-private user-read-playback-state user-modify-playback-state playlist-read-private user-library-read';
@@ -672,7 +672,7 @@ async function fetchLibrary(){
 
 /* Supabase: tabla marginalia_notes (ver marginalia_notes.sql) */
 const sbOn=()=>live&&CFG.supabaseUrl&&CFG.supabaseKey;
-const sbf=(path,o={})=>fetch(CFG.supabaseUrl+'/rest/v1/'+path,{...o,headers:{apikey:CFG.supabaseKey,Authorization:'Bearer '+CFG.supabaseKey,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates',...o.headers}});
+const sbf=(path,o={})=>fetch(CFG.supabaseUrl+'/rest/v1/'+path,{...o,headers:{apikey:CFG.supabaseKey,...(CFG.supabaseKey.startsWith('eyJ')?{Authorization:'Bearer '+CFG.supabaseKey}:{}),'Content-Type':'application/json',Prefer:'resolution=merge-duplicates',...o.headers}});
 const sbUp=n=>{if(sbOn())sbf('marginalia_notes',{method:'POST',body:JSON.stringify({id:n.id,user_id:uid,track_id:n.tid,ms:n.ms,text:n.text,meta:n.meta||null})}).catch(()=>{})};
 const sbDel=id=>{if(sbOn())sbf('marginalia_notes?id=eq.'+encodeURIComponent(id)+'&user_id=eq.'+encodeURIComponent(uid),{method:'DELETE'}).catch(()=>{})};
 async function sbPull(local){
