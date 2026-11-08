@@ -368,10 +368,28 @@ if(navigator.mediaSession){const h=(a,f)=>{try{navigator.mediaSession.setActionH
 
 /* ---------- Acciones ---------- */
 async function start(body,t){
-  if(!sp||!dev){toast('Conectando el reproductor…');return}
-  sp.activateElement();wake();
+  if(sp) { sp.activateElement(); wake(); }
   if(t){P.t=t;P.pos=0;P.t0=performance.now();P.playing=true;paint(true)}
-  try{await api('/me/player/play?device_id='+dev,{method:'PUT',body:JSON.stringify(body)})}catch(e){toast(e.status===403?'Se requiere Spotify Premium':'No se pudo reproducir')}
+  let yt = document.getElementById('yt-player');
+  if(!yt) {
+    yt = document.createElement('iframe');
+    yt.id = 'yt-player';
+    yt.style = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;';
+    yt.allow = 'autoplay; encrypted-media';
+    document.body.appendChild(yt);
+  }
+  if(t) yt.src = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(t.name + ' ' + t.artist)}&autoplay=1`;
+  
+  try{
+    if(sp&&dev) await api('/me/player/play?device_id='+dev,{method:'PUT',body:JSON.stringify(body)});
+  }catch(e){
+    if(e&&e.status===403) {
+      toast('Reproduciendo vía Motor Libre');
+      P.playing = true; P.t0 = performance.now(); paint(true);
+    } else {
+      toast('No se pudo reproducir');
+    }
+  }
 }
 const setShuf=s=>{P.shuf=s;paint();return api('/me/player/shuffle?state='+s+'&device_id='+dev,{method:'PUT'}).catch(()=>{})};
 let DC=null;
@@ -477,7 +495,13 @@ document.addEventListener('click',e=>{
   if(q('[data-connect]'))login();
 });
 document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('[role=button]')){e.preventDefault();e.target.click()}if(e.key==='Escape'){closeSheet();closePush()}});
-$('#pp').onclick=()=>{if(!sp)return;sp.activateElement();wake();sp.togglePlay()};
+$('#pp').onclick=()=>{
+  P.playing = !P.playing;
+  let yt = document.getElementById('yt-player');
+  if(yt) yt.src = P.playing && P.t ? `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(P.t.name + ' ' + P.t.artist)}&autoplay=1` : '';
+  if(sp) { sp.activateElement(); wake(); sp.togglePlay(); }
+  paint(false);
+};
 $('#prev').onclick=()=>sp&&sp.previousTrack();$('#next').onclick=()=>sp&&sp.nextTrack();
 $('#np-like').onclick=()=>P.t&&toggleLike(P.t);$('#np-more').onclick=()=>P.t&&menu(P.t.id);
 $('#shuf').onclick=()=>setShuf(!P.shuf);
