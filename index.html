@@ -438,7 +438,7 @@ const vl=$('#vol');vl.oninput=()=>{vl.style.setProperty('--p',vl.value+'%');vol=
 
 function accent(t){const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{try{const g=document.createElement('canvas').getContext('2d');g.canvas.width=g.canvas.height=12;g.drawImage(im,0,0,12,12);const d=g.getImageData(0,0,12,12).data;let b=null,bs=.06;
  for(let i=0;i<d.length;i+=4){const mx=Math.max(d[i],d[i+1],d[i+2]),mn=Math.min(d[i],d[i+1],d[i+2]),sc=(mx-mn)/255*(1-Math.abs(mx+mn-255)/255);if(sc>bs){bs=sc;b=[d[i],d[i+1],d[i+2]]}}
- if(!b)b=[17,17,17];const k=Math.max(...b)>150?150/Math.max(...b):1;document.documentElement.style.setProperty('--acc',`rgb(${b.map(v=>Math.round(v*k))})`)}catch(e){}};im.src=t.sm||t.lg}
+ if(!b)b=[17,17,17];const k=Math.max(...b)>150?150/Math.max(...b):1;document.documentElement.style.setProperty('--acc',`rgb(${b.map(v=>Math.round(v*k))})`);{const m=document.querySelector('meta[name=theme-color]'),c=b.map(v=>Math.round(v*k*.1+255*.9));if(m)m.content='rgb('+c+')'}}catch(e){}};im.src=t.sm||t.lg}
 /* ---------- Q-Music: historial, stats, letras, stories y gestos ---------- */
 const jl=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}};
 const H=jl('qm.h',[]),MS=jl('qm.ms',{}),dk=d=>{d=d||new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()};
