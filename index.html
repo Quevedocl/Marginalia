@@ -570,7 +570,7 @@ const ytNote=()=>{if(ytNoted||PREM!==false)return;ytNoted=true;toast('Cuenta gra
 /* ---- Respaldo YouTube (cuentas sin Premium) ----
    YouTube eliminó hace años el embed por búsqueda (listType=search), por eso ya no sonaba nada.
    Ahora se busca el video con la YouTube Data API v3 y se incrusta por ID. */
-const YT_KEY='AIzaSyDQUkj0YpzqqPeJmMSKJWw7tB4xEB-7UCg';
+const YT_KEY='AIzaSyBizTGxqavcBXLQJoAxl29Wx2bRUyDmeW8';
 /* Caché persistente: una canción ya buscada no vuelve a gastar cuota de la API de YouTube */
 const YT_CK='qm.ytc';
 const ytCache=new Map((()=>{try{return JSON.parse(localStorage.getItem(YT_CK)||'[]')}catch(e){return[]}})());
