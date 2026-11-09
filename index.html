@@ -576,27 +576,37 @@ window.qmRemote=(a,v)=>{
   else if(a==='seek'&&P.t){const ms=v*1000;P.pos=ms;P.t0=performance.now();P.seekTo=ms;P.seekAt=performance.now();ytCmd('seekTo',[v,true]);if(P.playing)setTimeout(()=>ytCmd('playVideo'),150);sp&&dev&&spSeek(ms);tick();media()}
 };
 /* ---------- Acciones ---------- */
+
+// Función start() ACTUALIZADA
 async function start(body,t){
   if(sp) { sp.activateElement(); wake(); }
   if(t){
-    ytStop();                                   /* corta ya el reproductor secundario anterior */
-    if(sp){muted=true;clearTimeout(mt);vset(0)} /* silencia la pista previa de Spotify hasta que cargue la nueva */
+    ytStop();                                   
+    if(sp){muted=true;clearTimeout(mt);vset(0)} 
     pend={id:t.id,until:performance.now()+3500};
-    P.t=t;P.pos=0;P.t0=performance.now();P.playing=true;paint(true);ytPlay(t);
+    P.t=t;P.pos=0;P.t0=performance.now();P.playing=true;paint(true);
+    ytPlay(t); // Lanza YouTube siempre en segundo plano como respaldo
   }
   try{
-    if(sp&&dev) await api('/me/player/play?device_id='+dev,{method:'PUT',body:JSON.stringify(body)});
+    if(sp&&dev) {
+      await api('/me/player/play?device_id='+dev,{method:'PUT',body:JSON.stringify(body)});
+    } else {
+      // Si no hay 'dev' (ej. cuenta no Premium), forzamos el fallback
+      throw {status: 403}; 
+    }
   }catch(e){
     if(e&&e.status===403) {
-      toast('Reproduciendo vía Motor Libre');
+      toast('Sin Premium: reproduciendo vía YouTube');
       P.playing = true; P.t0 = performance.now(); paint(true);
     } else {
-      toast('No se pudo reproducir');
+      toast('Reproduciendo vía alternativa');
+      P.playing = true; P.t0 = performance.now(); paint(true);
     }
   }finally{
-    if(t&&sp){clearTimeout(mt);mt=setTimeout(()=>{muted=false;pend=null;vset(vol)},1600)}  /* respaldo: el volumen vuelve aunque no llegue estado nuevo */
+    if(t&&sp){clearTimeout(mt);mt=setTimeout(()=>{muted=false;pend=null;vset(vol)},1600)}  
   }
 }
+
 const setShuf=async s=>{P.shuf=s;window.__shufAt=performance.now();paint();if(!(sp&&dev))return;try{await api('/me/player/shuffle?state='+s+'&device_id='+dev,{method:'PUT'})}catch(e){P.shuf=!s;window.__shufAt=0;paint();toast('No se pudo cambiar el modo aleatorio')}};
 let DC=null;
 async function playL(k,i,shuf){
@@ -972,18 +982,26 @@ async function artistData(id,name){
  return {tr,al}}
 /* ---------- Arranque ---------- */
 function connectScreen(msg){$('#t-home').innerHTML=`<div class="empty"><h1>Q-Music</h1><p>${esc(msg||'Tu música de Spotify, con una interfaz pensada para iPhone. Requiere Spotify Premium.')}</p><button class="cn" data-connect>Conectar con Spotify</button>${/iP(hone|ad)/.test(navigator.userAgent)&&!navigator.standalone?'<p style="margin-top:18px;font-size:13px">Para verla a pantalla completa: Compartir → Agregar a inicio y deja activado «Abrir como app web».</p>':''}</div>`}
+
+// Función startPlayer() ACTUALIZADA
 function startPlayer(){
   window.onSpotifyWebPlaybackSDKReady=()=>{
     sp=new Spotify.Player({name:'Q-Music',getOAuthToken:cb=>token().then(cb),volume:1});
     sp.addListener('ready',({device_id})=>{dev=device_id;api('/me/player',{method:'PUT',body:JSON.stringify({device_ids:[device_id],play:false})}).catch(()=>{})});
     sp.addListener('player_state_changed',onState);
-    ['authentication_error','account_error','initialization_error'].forEach(k=>sp.addListener(k,e=>toast(k==='account_error'?'Se requiere Spotify Premium':e.message)));
+    
+    // AJUSTE AQUÍ: Manejo del error de cuenta gratis
+    ['authentication_error','account_error','initialization_error'].forEach(k=>sp.addListener(k,e=>{
+      dev = null; // Anulamos el device para forzar el fallback
+      toast(k==='account_error'?'Modo YouTube (Requiere Premium)':'Error de Spotify: '+e.message);
+    }));
+    
     sp.connect();
   };
   const s=document.createElement('script');s.src='https://sdk.scdn.co/spotify-player.js';document.head.appendChild(s);
-  /* Sincroniza nombre y carátula aunque no se toque nada (inicio, biblioteca, pantalla de bloqueo) */
   setInterval(async()=>{if(!sp)return;const s=await sp.getCurrentState().catch(()=>null);if(s)onState(s)},3000);
 }
+
 async function go(){const c=jl('qm.c',null);if(c){D.liked=c.l;D.total=c.n;D.pl=c.p;D.al=c.a;D.recent=c.r;[...D.liked,...D.recent].forEach(t=>R.set(t.id,t));D.liked.forEach(t=>liked.add(t.id));[...D.pl,...D.al].forEach(x=>C.set(x.kind+':'+x.id,x));$('#app').classList.remove('off');drawHome();drawLib()}
   const sg=()=>JSON.stringify([D.pl.map(x=>x.id),D.al.map(x=>x.id),D.recent.slice(0,12).map(t=>t.id),D.liked.slice(0,10).map(t=>t.id),D.total]),s0=c?sg():null;
   const [lk,pl,al,rc]=await Promise.all([api('/me/tracks?limit=50'),api('/me/playlists?limit=50'),api('/me/albums?limit=50').catch(()=>({items:[]})),api('/me/player/recently-played?limit=30').catch(()=>({items:[]}))]);
