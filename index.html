@@ -315,7 +315,7 @@ html.sa,html.sa body{height:var(--vh)}
 html.sa #app,html.sa #sheet,html.sa #menu{height:var(--vh);top:0;bottom:auto}
 </style></head><body>
 <div id="app" class="off">
-  <div id="hb"></div><main id="main">
+  <div id="hb"></div><button id="pbtn" data-pbtn aria-label="Perfil"></button><button id="pbk" data-pback aria-label="Volver"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><main id="main">
     <section class="tab" id="t-home" aria-label="Inicio"></section>
     <section class="tab" id="t-lib" aria-label="Biblioteca" hidden></section>
     <section class="tab" id="t-search" aria-label="Buscar" hidden>
@@ -331,7 +331,6 @@ html.sa #app,html.sa #sheet,html.sa #menu{height:var(--vh);top:0;bottom:auto}
     <button class="tb" role="tab" data-tab="lib" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M9 17.5V6l10-2v11.5"/><circle cx="6.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="15.5" r="2.5"/></svg>Biblioteca</button>
     <button class="tb" role="tab" data-tab="search" aria-selected="false"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>Buscar</button>
   <button class="tb" role="tab" data-tab="stats" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M5 20V11M12 20V5M19 20v-7"/></svg>Stats</button>
-  <button class="tb" role="tab" data-tab="me" aria-selected="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-4 4-6 7-6s6 2 7 6"/></svg>Perfil</button>
   </nav>
 </div>
 
@@ -422,6 +421,32 @@ input,textarea{-webkit-user-select:text!important;user-select:text!important}
 #qm-dlg .pcs{display:flex;gap:8px;margin-top:14px;justify-content:space-between}
 #qm-dlg .pcs button{width:36px;height:36px;border-radius:50%;padding:0;flex:none;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.12)}
 #qm-dlg .pcs button.on{box-shadow:0 0 0 2.5px #0b0b0c}
+
+/* ===== Perfil: botón flotante + pantalla rediseñada ===== */
+#pbtn,#pbk{border-radius:50%!important;position:fixed;z-index:27;top:calc(env(safe-area-inset-top,0px) + 7px);width:36px;height:36px;border-radius:50%;display:grid;place-items:center;overflow:hidden;padding:0;transition:transform .35s var(--spr,ease),opacity .2s}
+#pbtn{right:16px;color:#fff;font:700 16px var(--ser);border:2px solid #fff;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+#pbtn img{width:100%;height:100%;object-fit:cover;display:block}
+#pbk{left:14px;display:none;background:rgba(255,255,255,.85);color:var(--l1);border:.5px solid var(--sep);box-shadow:0 4px 14px rgba(0,0,0,.1);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+#pbk svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+#pbtn:active,#pbk:active{transform:scale(.9)}
+#app.off #pbtn,#app.pme #pbtn,#app:has(#push.open) #pbtn,#app:has(#sheet.open) #pbtn{display:none}
+#app.pme #pbk{display:grid}
+#app:has(#push.open) #pbk,#app:has(#sheet.open) #pbk{display:none}
+#t-me{padding-top:calc(env(safe-area-inset-top,0px) + 52px)}
+.pw{position:relative;margin-bottom:58px}
+.pbn{height:148px;border-radius:28px}
+.pa{border-radius:50%!important;position:absolute;left:20px;bottom:-50px;width:108px;height:108px;border-radius:50%;display:grid;place-items:center;overflow:hidden;color:#fff;font:700 44px var(--ser);border:4px solid #fff;box-shadow:0 10px 28px rgba(0,0,0,.16)}
+.pa img{width:100%;height:100%;object-fit:cover;display:block}
+.pid{padding:0 2px}
+h2.pn{font:700 32px/1.1 var(--ser);letter-spacing:-.7px;text-transform:none;color:var(--l1);margin:0 0 4px;padding:0;border:0}
+.ps{display:flex;align-items:center;gap:8px;color:var(--l2);font-size:15px}
+.bdg{font-style:normal;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:var(--l1);color:#fff}
+p.pb{color:var(--l2);font-size:15px;margin:12px 0 0;line-height:1.4}
+.pid .pe{margin-top:16px;width:100%;flex:none}
+.pst{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:22px}
+.pst div{padding:14px 2px;border:1px solid var(--sep);border-radius:16px;text-align:center}
+.pst b{display:block;font:700 22px var(--ser)}.pst span{font-size:11px;color:var(--l2)}
+.plo{margin-top:26px;width:100%;flex:none}
 </style>
 <script>
 (()=>{'use strict';
@@ -476,7 +501,7 @@ const coll=(kind,x,sub)=>{if(!x||!x.id)return null;const c={kind,id:x.id,uri:x.u
 const lib=(m,ids)=>{const u=ids.map(i=>'spotify:track:'+i).join(',');return api((m==='GET'?'/me/library/contains?uris=':'/me/library?uris=')+encodeURIComponent(u),{method:m}).catch(()=>api((m==='GET'?'/me/tracks/contains?ids=':'/me/tracks?ids=')+ids.join(','),{method:m}))};
 
 /* ---------- Estado de reproducción ---------- */
-const P={t:null,pos:0,t0:0,playing:false,shuf:false,rep:0};let sp=null,dev='',vol=1,scrub=false;
+const P={t:null,pos:0,t0:0,playing:false,shuf:false,rep:0};let sp=null,dev='',vol=1,scrub=false,spSdk=null,sdkDev='',spConn=null,connTry=0;
 /* Reproductor secundario (iframe #yt-player): siempre se destruye antes de crear el siguiente,
    así nunca suena ni un instante la canción anterior */
 let pend=null,muted=false,mt;
@@ -681,34 +706,36 @@ function doSeek(ms){if(!P.t)return;const d=P.t.dur||0;ms=Math.max(0,d>3000?Math.
   tick();try{media()}catch(e){}}
 /* ---------- Acciones ---------- */
 
-// Función start() ACTUALIZADA
+/* Reproduce con Spotify primero (SDK web o Spotify Connect). YouTube es SOLO el último recurso. */
 async function start(body,t){
-  if(sp) { sp.activateElement(); wake(); }
+  if(sp){try{sp.activateElement()}catch(e){}wake()}
   if(t){
-    ytStop();                                   
-    if(sp){muted=true;clearTimeout(mt);vset(0)} 
+    ytStop();
+    if(sp){muted=true;clearTimeout(mt);vset(0)}
     pend={id:t.id,until:performance.now()+3500};
-    P.t=t;P.pos=0;P.t0=performance.now();P.playing=true;paint(true);
-    ytPlay(t); // Lanza YouTube siempre en segundo plano como respaldo
+    P.t=t;P.pos=0;P.t0=performance.now();P.playing=true;P.buf=false;paint(true);
   }
-  try{
-    if(sp&&dev) {
-      await api('/me/player/play?device_id='+dev,{method:'PUT',body:JSON.stringify(body)});
-    } else {
-      // Si no hay 'dev' (ej. cuenta no Premium), forzamos el fallback
-      throw {status: 403}; 
+  const play=()=>api('/me/player/play?device_id='+dev,{method:'PUT',body:JSON.stringify(body)});
+  let ok=false;
+  if(PREM!==false){
+    if(!dev)await findDevice();
+    if(dev){
+      try{await play();ok=true}
+      catch(e){
+        if(e&&e.status===404){            /* el dispositivo ya no existe: se busca otro y se reintenta una vez */
+          dev='';await findDevice(true);
+          if(dev){try{await play();ok=true}catch(_){}}
+        }
+      }
     }
-  }catch(e){
-    if(e&&e.status===403) {
-      ytNote();
-      P.playing = true; P.t0 = performance.now(); paint(true);
-    } else {
-      toast('Reproduciendo vía alternativa');
-      P.playing = true; P.t0 = performance.now(); paint(true);
-    }
-  }finally{
-    if(t&&sp){clearTimeout(mt);mt=setTimeout(()=>{muted=false;pend=null;vset(vol)},1600)}  
   }
+  if(ok){if(t)P.playing=true;P.t0=performance.now();paint(true)}
+  else if(t){
+    dev='';                                 /* modo YouTube: los controles dejan de apuntar a Spotify */
+    if(PREM===false)ytNote();else toast('Spotify no respondió: abre la app de Spotify e inténtalo de nuevo. Sonando vía YouTube');
+    ytPlay(t);
+  }
+  if(t&&sp){clearTimeout(mt);mt=setTimeout(()=>{muted=false;pend=null;vset(vol)},1600)}
 }
 
 const setShuf=async s=>{P.shuf=s;window.__shufAt=performance.now();
@@ -748,6 +775,7 @@ const crow=c=>`<div class="lrow" data-open="${c.kind}:${c.id}" role="button" tab
 const card=(c,i)=>`<button class="card" data-open="${c.kind}:${c.id}"><img src="${esc(c.cover)}" alt="" loading="lazy"><b>${esc(c.name)}</b><span>${esc(c.sub)}</span></button>`;
 const tcards=(a,k)=>{L[k]=a;return`<div class="hs">${a.map((t,i)=>`<button class="card" data-id="${t.id}" data-l="${k}" data-i="${i}"><img src="${esc(t.lg)}" alt="" loading="lazy"><b>${esc(t.name)}</b><span>${esc(t.artist)}</span></button>`).join('')}</div>`};
 function drawHome(){
+  try{syncPbtn()}catch(e){}
   const rc=i=>D.rec[i]?`<h2>Más de ${esc(D.rec[i].n)}</h2>${tcards(D.rec[i].t,'m'+i)}`:'';
   $('#t-home').innerHTML=`<h1>Inicio</h1>`+(D.recent.length?`<h2 style="margin-top:6px">Escuchado recientemente</h2>${tcards(D.recent.slice(0,12),'rc')}`:'')+rc(0)
   +(D.pl.length?`<h2>Tus listas</h2><div class="hs">${D.pl.slice(0,12).map(card).join('')}</div>`:'')+rc(1)
@@ -811,7 +839,8 @@ sr.addEventListener('click',e=>{
 drawHist();
 const TO=['home','lib','search','stats','me'];let tl='home';
 function pgIn(n){const e=$('#t-'+n);e.style.setProperty('--d',(TO.indexOf(n)>=TO.indexOf(tl)?22:-22)+'px');tl=n;e.classList.remove('in');void e.offsetWidth;e.classList.add('in');hdr(e,e.scrollTop)}
-function tab(n){closePush();if(n==='stats')drawStats();if(n==='me')drawMe();TO.forEach(k=>$('#t-'+k).hidden=k!==n);$$('.tb').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===n)));pgIn(n)}
+let ptab='home';
+function tab(n){closePush();if(n!=='me')ptab=n;$('#app').classList.toggle('pme',n==='me');if(n==='stats')drawStats();if(n==='me')drawMe();TO.forEach(k=>$('#t-'+k).hidden=k!==n);$$('.tb').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===n)));pgIn(n)}
 
 /* Cola de reproducción */
 let PK='',PQ=[],PO=[],PI=0;
@@ -853,8 +882,8 @@ document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.tar
 function toggle(){
   P.act=performance.now();
   if(P.playing){P.userPause=performance.now();P.pos=now();P.playing=false;ytCmd('pauseVideo')}
-  else{P.userPause=0;P.t0=performance.now();P.playing=true;if(!ytCmd('playVideo')&&P.t&&!document.getElementById('yt-player'))ytPlay(P.t)}
-  if(sp) { sp.activateElement(); wake(); sp.togglePlay(); }
+  else{P.userPause=0;P.t0=performance.now();P.playing=true;if(!dev&&!ytCmd('playVideo')&&P.t&&!document.getElementById('yt-player'))ytPlay(P.t)}
+  wake();if(sp&&dev){try{sp.activateElement()}catch(e){}sp.togglePlay()}
   paint(false);
 }
 $('#pp').onclick=toggle;
@@ -1127,15 +1156,31 @@ async function delList(key,own){const c=C.get(key);if(!c)return;
 /* ---------- Perfil ---------- */
 const PC=[['#ff6a7b','#fa2d48'],['#7c6cff','#4b3bff'],['#2ad4b6','#0a9d85'],['#ffb84d','#ff7a18'],['#ff7ad9','#b84dff'],['#4a4a4f','#0b0b0c']];
 const PROF=()=>jl('qm.prof',{});
+function syncPbtn(){const b=$('#pbtn');if(!b)return;const pr=PROF(),me=QME||{},nm=pr.name||me.display_name||'Q',pic=pr.pic||((me.images||[])[0]||{}).url||'',cl=PC[pr.col||0]||PC[0];
+  b.style.background=`linear-gradient(135deg,${cl[0]},${cl[1]})`;b.innerHTML=pic?`<img src="${esc(pic)}" alt="">`:esc((nm.trim()[0]||'Q').toUpperCase())}
+const streak=()=>{let n=0,d=new Date();if(!(MS[dk(d)]>0))d=new Date(Date.now()-864e5);while(MS[dk(d)]>0&&n<999){n++;d=new Date(d.getTime()-864e5)}return n};
 function drawMe(again){
   const pr=PROF(),me=QME||{},nm=pr.name||me.display_name||'Tú',pic=pr.pic||((me.images||[])[0]||{}).url||'',cl=PC[pr.col||0]||PC[0];
-  const hrs=[...Array(7)].reduce((a,_,i)=>a+(MS[dk(new Date(Date.now()-i*864e5))]||0),0)/36e5;
-  const plan=me.product==='premium'?'Premium':me.product==='free'?'Gratis':'';
-  $('#t-me').innerHTML=`<h1>Perfil</h1><div class="pf"><div class="pfa" style="background:linear-gradient(135deg,${cl[0]},${cl[1]})">${pic?`<img src="${esc(pic)}" alt="">`:esc((nm.trim()[0]||'Q').toUpperCase())}</div><h2>${esc(nm)}</h2><p>${esc(pr.bio||'Toca «Editar perfil» para añadir una descripción')}</p><button class="btn" data-pedit>Editar perfil</button></div>
-  <div class="pst"><div><b>${D.pl.length}</b><span>Listas</span></div><div><b>${D.total}</b><span>Favoritas</span></div><div><b>${hrs.toFixed(1)}</b><span>Horas / semana</span></div></div>
-  <h2>Cuenta de Spotify</h2>${me.display_name||me.id?`<div class="pin">Usuario<span>${esc(me.display_name||me.id)}</span></div>`:''}${plan?`<div class="pin">Plan<span>${plan}</span></div>`:''}<div class="pin">Datos del perfil<span>Solo en este iPhone</span></div>`;
+  const wk=[...Array(7)].map((_,i)=>{const d=new Date(Date.now()-(6-i)*864e5);return['DLMXJVS'[d.getDay()],(MS[dk(d)]||0)/36e5]}),hrs=wk.reduce((a,x)=>a+x[1],0),dm=Math.max(.01,...wk.map(x=>x[1]));
+  const cnt={};H.forEach(h=>{const n=String(h.artist||'').split(',')[0];if(n)cnt[n]=(cnt[n]||0)+1});
+  const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,5),mx=top.length?top[0][1]:1;
+  const plan=me.product==='premium'?'Premium':me.product==='free'?'Gratis':'',st=streak(),fol=me.followers&&me.followers.total;
+  const rec=(H.length?H:D.recent).slice(0,10);H.forEach(t=>R.set(t.id,R.get(t.id)||t));
+  const row=(k,v)=>v||v===0?`<div class="pin">${k}<span>${esc(String(v))}</span></div>`:'';
+  $('#t-me').innerHTML=`<h1 style="display:none">Perfil</h1>
+  <div class="pw"><div class="pbn" style="background:radial-gradient(circle at 82% 18%,rgba(255,255,255,.38),transparent 46%),radial-gradient(circle at 8% 110%,rgba(0,0,0,.28),transparent 55%),linear-gradient(135deg,${cl[0]},${cl[1]})"></div>
+  <div class="pa" style="background:linear-gradient(135deg,${cl[0]},${cl[1]})">${pic?`<img src="${esc(pic)}" alt="">`:esc((nm.trim()[0]||'Q').toUpperCase())}</div></div>
+  <div class="pid"><h2 class="pn">${esc(nm)}</h2><div class="ps">${me.id?'@'+esc(me.id):''}${plan?`<em class="bdg">${plan}</em>`:''}</div>
+  <p class="pb">${esc(pr.bio||'Toca «Editar perfil» para añadir una descripción')}</p><button class="btn pe" data-pedit>Editar perfil</button></div>
+  <div class="pst"><div><b>${D.pl.length}</b><span>Listas</span></div><div><b>${D.total}</b><span>Favoritas</span></div><div><b>${H.length}</b><span>Escuchas</span></div><div><b>${st}</b><span>Racha</span></div></div>
+  <h2>Esta semana · ${hrs.toFixed(1)} h</h2><div class="bars">${wk.map(x=>`<div><i style="height:${Math.max(3,x[1]/dm*100)}%"></i>${x[0]}</div>`).join('')}</div>
+  ${top.length?`<h2>Tus artistas</h2>${top.map(x=>`<div class="ta"><i style="width:${x[1]/mx*100}%"></i><b>${esc(x[0])}</b><span>${x[1]}</span></div>`).join('')}`:`<h2>Tus artistas</h2><p class="pb" style="text-align:left">Reproduce música y aquí aparecerán tus artistas más escuchados.</p>`}
+  ${rec.length?`<h2>Escuchado recientemente</h2>${tcards(rec,'pr')}`:''}
+  ${D.pl.length?`<h2>Tus listas</h2><div class="hs">${D.pl.slice(0,12).map(card).join('')}</div>`:''}
+  <h2>Cuenta</h2>${row('Usuario',me.display_name||me.id)}${row('Plan',plan)}${row('País',me.country)}${row('Seguidores',fol)}<div class="pin">Datos del perfil<span>Solo en este iPhone</span></div>
+  <button class="btn plo" data-logout>Cerrar sesión</button>`;
   hdr($('#t-me'),$('#t-me').scrollTop);
-  if(!QME&&!again)getMe().then(()=>{if(!$('#t-me').hidden)drawMe(true)}).catch(()=>{})}
+  if(!QME&&!again)getMe().then(()=>{syncPbtn();if(!$('#t-me').hidden)drawMe(true)}).catch(()=>{})}
 function editProfile(){
   const pr=PROF();let pic=pr.pic||'',col=pr.col||0;
   const o=document.createElement('div');o.id='qm-dlg';
@@ -1145,7 +1190,7 @@ function editProfile(){
   ni.value=pr.name||(QME&&QME.display_name)||'';bi.value=pr.bio||'';
   const ps=()=>{pb.innerHTML=pic?`<img src="${esc(pic)}" alt="">`:`${ic('<rect x="3.5" y="5.5" width="17" height="13" rx="2.5"/><circle cx="12" cy="12" r="3.2"/>')}<span>Foto</span>`;rm.hidden=!pic;$$('[data-c]',o).forEach(b=>b.classList.toggle('on',+b.dataset.c===col))};ps();
   fi.onchange=async()=>{const f=fi.files&&fi.files[0];if(!f)return;try{pic=(await prepCover(f)).preview;ps()}catch(e){toast('No se pudo leer esa imagen')}};
-  const save=()=>{try{localStorage.setItem('qm.prof',JSON.stringify({name:ni.value.trim(),bio:bi.value.trim(),col,pic}))}catch(e){toast('No hay espacio para guardar la foto');return}o.remove();drawMe();toast('Perfil actualizado')};
+  const save=()=>{try{localStorage.setItem('qm.prof',JSON.stringify({name:ni.value.trim(),bio:bi.value.trim(),col,pic}))}catch(e){toast('No hay espacio para guardar la foto');return}o.remove();drawMe();syncPbtn();toast('Perfil actualizado')};
   o.addEventListener('click',e=>{
     if(e.target===o||e.target.closest('[data-x]'))o.remove();
     else if(e.target.closest('[data-pick]'))fi.click();
@@ -1157,24 +1202,49 @@ function editProfile(){
 /* ---------- Arranque ---------- */
 function connectScreen(msg){$('#t-home').innerHTML=`<div class="empty"><h1>Q-Music</h1><p>${esc(msg||'Tu música de Spotify, con una interfaz pensada para iPhone. Requiere Spotify Premium.')}</p><button class="cn" data-connect>Conectar con Spotify</button>${/iP(hone|ad)/.test(navigator.userAgent)&&!navigator.standalone?'<p style="margin-top:18px;font-size:13px">Para verla a pantalla completa: Compartir → Agregar a inicio y deja activado «Abrir como app web».</p>':''}</div>`}
 
-// Función startPlayer() ACTUALIZADA
+/* ---- Spotify Connect (para iPhone/WKWebView, donde el SDK web no funciona) ----
+   Se maneja la app de Spotify del teléfono mediante la Web API y se imita la interfaz del SDK. */
+const stFrom=j=>{if(!j||!j.item||j.currently_playing_type==='ad')return null;
+  return{track_window:{current_track:j.item},position:j.progress_ms||0,duration:j.item.duration_ms||0,paused:!j.is_playing,shuffle:!!j.shuffle_state,repeat_mode:({off:0,context:1,track:2})[j.repeat_state]||0}};
+const mkConn=()=>({
+  activateElement(){},connect(){return Promise.resolve(true)},addListener(){},setVolume(){return Promise.resolve()},
+  getCurrentState:async()=>{try{return stFrom(await api('/me/player'))}catch(e){return null}},
+  togglePlay:()=>P.playing?api('/me/player/play?device_id='+dev,{method:'PUT'}).catch(()=>{}):api('/me/player/pause?device_id='+dev,{method:'PUT'}).catch(()=>{}),
+  resume:()=>api('/me/player/play?device_id='+dev,{method:'PUT'}),
+  pause:()=>api('/me/player/pause?device_id='+dev,{method:'PUT'}),
+  seek:ms=>api('/me/player/seek?position_ms='+Math.round(ms)+'&device_id='+dev,{method:'PUT'}),
+  nextTrack:()=>api('/me/player/next?device_id='+dev,{method:'POST'}).catch(()=>{}),
+  previousTrack:()=>api('/me/player/previous?device_id='+dev,{method:'POST'}).catch(()=>{})});
+/* Elige dónde sonará Spotify: primero el reproductor del SDK; si no existe, un dispositivo de Spotify Connect */
+async function findDevice(force){
+  if(PREM===false)return;
+  if(spSdk&&sdkDev&&!force){sp=spSdk;dev=sdkDev;return}
+  try{
+    const r=await api('/me/player/devices');
+    const l=(r&&r.devices||[]).filter(d=>d.id&&!d.is_restricted&&d.name!=='Q-Music');
+    const d=l.find(x=>x.is_active)||l.find(x=>/smartphone/i.test(x.type))||l[0];
+    if(d){spConn=spConn||mkConn();sp=spConn;dev=d.id;return}
+  }catch(e){}
+  if(spSdk&&sdkDev){sp=spSdk;dev=sdkDev}
+}
 function startPlayer(){
   window.onSpotifyWebPlaybackSDKReady=()=>{
-    sp=new Spotify.Player({name:'Q-Music',getOAuthToken:cb=>token().then(cb),volume:1});
-    sp.addListener('ready',({device_id})=>{dev=device_id;api('/me/player',{method:'PUT',body:JSON.stringify({device_ids:[device_id],play:false})}).catch(()=>{})});
-    sp.addListener('player_state_changed',onState);
-    
-    // AJUSTE AQUÍ: Manejo del error de cuenta gratis
-    ['authentication_error','account_error','initialization_error'].forEach(k=>sp.addListener(k,e=>{
-      dev = null; // Anulamos el device para forzar el fallback
-      // En iPhone el SDK de Spotify no existe aunque tengas Premium: no se acusa a la cuenta
-      if(k==='authentication_error')toast('Error de Spotify: '+e.message);else ytNote();
-    }));
-    
-    sp.connect();
+    spSdk=new Spotify.Player({name:'Q-Music',getOAuthToken:cb=>token().then(cb),volume:1});
+    sp=sp||spSdk;
+    spSdk.addListener('ready',({device_id})=>{sdkDev=device_id;if(!dev){sp=spSdk;dev=device_id}api('/me/player',{method:'PUT',body:JSON.stringify({device_ids:[device_id],play:false})}).catch(()=>{})});
+    spSdk.addListener('not_ready',()=>{sdkDev='';if(sp===spSdk)dev=''});
+    spSdk.addListener('player_state_changed',onState);
+    /* Cuenta gratuita: el SDK devuelve account_error. En iPhone el SDK no puede iniciar: se usa Spotify Connect. */
+    spSdk.addListener('account_error',()=>{sdkDev='';if(sp===spSdk)dev='';ytNote()});
+    spSdk.addListener('initialization_error',()=>{sdkDev='';if(sp===spSdk)dev='';findDevice(true)});
+    spSdk.addListener('authentication_error',e=>{toast('Error de Spotify: '+e.message)});
+    spSdk.connect();
   };
-  const s=document.createElement('script');s.src='https://sdk.scdn.co/spotify-player.js';document.head.appendChild(s);
-  setInterval(async()=>{if(!sp)return;const s=await sp.getCurrentState().catch(()=>null);if(s)onState(s)},3000);
+  const s=document.createElement('script');s.src='https://sdk.scdn.co/spotify-player.js';
+  s.onerror=()=>findDevice(true);
+  document.head.appendChild(s);
+  setTimeout(()=>{if(!dev)findDevice(true)},4000);
+  setInterval(async()=>{if(!sp||!dev)return;const s=await sp.getCurrentState().catch(()=>null);if(s)onState(s)},3000);
 }
 
 async function go(){const c=jl('qm.c',null);if(c){D.liked=c.l;D.total=c.n;D.pl=c.p;D.al=c.a;D.recent=c.r;[...D.liked,...D.recent].forEach(t=>R.set(t.id,t));D.liked.forEach(t=>liked.add(t.id));[...D.pl,...D.al].forEach(x=>C.set(x.kind+':'+x.id,x));$('#app').classList.remove('off');drawHome();drawLib()}
@@ -1184,7 +1254,7 @@ async function go(){const c=jl('qm.c',null);if(c){D.liked=c.l;D.total=c.n;D.pl=c
   D.pl=pl.items.filter(Boolean).map(p=>coll('pl',p,(p.owner&&p.owner.display_name)||'')).filter(Boolean);
   D.al=al.items.map(i=>i.album&&coll('al',i.album,(i.album.artists||[]).map(a=>a.name).join(', '))).filter(Boolean);
   const seen=new Set();D.recent=rc.items.map(i=>mk(i.track)).filter(t=>t&&!seen.has(t.id)&&seen.add(t.id));
-  try{localStorage.setItem('qm.c',JSON.stringify({l:D.liked.slice(0,50),n:D.total,p:D.pl,a:D.al,r:D.recent.slice(0,12)}))}catch(e){}$('#app').classList.remove('off');if(!s0||sg()!==s0){drawHome();drawLib()}startPlayer();drawRec().catch(()=>{});getMe().then(m=>{PREM=m&&m.product?m.product==='premium':null}).catch(()=>{});
+  try{localStorage.setItem('qm.c',JSON.stringify({l:D.liked.slice(0,50),n:D.total,p:D.pl,a:D.al,r:D.recent.slice(0,12)}))}catch(e){}$('#app').classList.remove('off');if(!s0||sg()!==s0){drawHome();drawLib()}startPlayer();drawRec().catch(()=>{});getMe().then(m=>{PREM=m&&m.product?m.product==='premium':null;try{syncPbtn()}catch(e){}}).catch(()=>{});
   (async()=>{let o=50;while(D.liked.length<D.total&&o<500){const r=await api('/me/tracks?limit=50&offset='+o).catch(()=>null);if(!r||!r.items.length)break;r.items.forEach(i=>{const t=mk(i.track);if(t){D.liked.push(t);liked.add(t.id)}});o+=50}drawLib()})();
 }
 async function init(){
@@ -1194,6 +1264,12 @@ async function init(){
   if(!tok()){connectScreen();return}
   try{await go()}catch(e){connectScreen('No se pudo cargar tu biblioteca. Vuelve a conectar.')}
 }
+document.addEventListener('click',async e=>{
+  const t=e.target.closest&&e.target.closest('[data-pbtn],[data-pback],[data-logout]');if(!t)return;
+  if(t.matches('[data-pbtn]'))tab('me');
+  else if(t.matches('[data-pback]'))tab(ptab||'home');
+  else if(await confirmDlg('¿Cerrar sesión?','Se desconectará tu cuenta de Spotify en este dispositivo.','Cerrar sesión')){try{localStorage.removeItem(TK)}catch(_){}location.reload()}
+});
 $('#app').classList.add('off');init();
 })();
 </script>
