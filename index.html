@@ -339,11 +339,12 @@ html.sa #app,html.sa #sheet,html.sa #menu{height:var(--vh);top:0;bottom:auto}
   <div id="top"><i></i></div>
   <div id="art"><img id="np-img" alt="" draggable="false"></div>
   <div id="q"></div><div id="ly"></div>
+  <div id="lsb"><button data-lcx>Cancelar</button><button data-lgo disabled>Elige las líneas</button></div>
   <div class="nph"><div class="m"><b id="np-t"></b><span id="np-a"></span></div><div class="eq"><i></i><i></i><i></i><i></i></div><button class="rb" id="np-like" aria-label="Favoritos"></button><button class="rb" id="np-more" aria-label="Más opciones"></button></div>
   <div class="sc"><input id="seek" type="range" min="0" max="1000" value="0" aria-label="Posición"><div class="tm"><span id="el">0:00</span><span id="rm">-0:00</span></div></div>
   <div class="tp"><button class="ic" id="prev" aria-label="Anterior"></button><button class="ic big" id="pp" aria-label="Reproducir"></button><button class="ic" id="next" aria-label="Siguiente"></button></div>
   <div class="ex"><button class="t" id="shuf" aria-label="Aleatorio"></button><button class="t" id="rep" aria-label="Repetir"></button><button class="t" id="dv" aria-label="Dispositivos"><svg viewBox="0 0 24 24"><rect x="6.5" y="3.5" width="11" height="17" rx="2.5"/><circle cx="12" cy="14.5" r="3"/><circle cx="12" cy="7.5" r=".9"/></svg></button><button class="t" id="lb" aria-label="Letra"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 11h16M4 16h9"/></svg></button><button class="t" id="qb" aria-label="Cola"></button></div>
-<div id="lsb"><button data-lcx>Cancelar</button><button data-lgo disabled>Elige las líneas</button></div>
+<button id="lsh" aria-label="Compartir letra" hidden><svg viewBox="0 0 24 24"><path d="M12 15V4M8 8l4-4 4 4M5 12v6.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V12"/></svg></button>
 </section>
 
 <div id="menu"><div id="mc"></div></div>
@@ -476,11 +477,22 @@ h2.pn{margin-top:16px}
 /* letra para historias */
 .trt button+button{margin-left:8px}
 #ly.sel p{cursor:pointer}
-#ly p.pk{color:var(--l1)!important;background:rgba(127,127,127,.2);border-radius:14px;padding:4px 10px;margin-left:-10px;margin-right:-10px}
-#lsb{position:absolute;left:16px;right:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 22px);z-index:6;display:none;gap:10px}
+#ly p.pk{color:var(--l1)!important;background:rgba(127,127,127,.22);border-radius:14px}
+#lsb{display:none;flex:none;gap:10px;margin:6px 0 2px}
 #lsb.on{display:flex}
-#lsb button{flex:1;height:52px;border-radius:999px;font-weight:600;font-size:16px;background:rgba(255,255,255,.88);color:#111;border:.5px solid rgba(0,0,0,.1);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
-#lsb [data-lgo]{flex:2;background:#111;color:#fff}#lsb [data-lgo]:disabled{opacity:.45}
+#lsb button{display:flex;align-items:center;justify-content:center;text-align:center;flex:1;height:50px;border-radius:999px!important;corner-shape:round!important;font-weight:700;font-size:16px;letter-spacing:.01em}
+#lsb [data-lcx]{background:rgba(255,255,255,.92)!important;color:#111!important;border:1px solid rgba(0,0,0,.14)}
+#lsb [data-lgo]{flex:2;background:#111!important;color:#fff!important}
+#lsb [data-lgo]:disabled{background:rgba(17,17,17,.55)!important}
+#lsh{position:absolute;z-index:7;top:calc(env(safe-area-inset-top,0px) + 10px);right:22px;width:40px;height:40px;padding:0;border-radius:50%!important;corner-shape:round!important;display:grid;place-items:center;background:rgba(255,255,255,.78);color:#111;border:.5px solid rgba(0,0,0,.12);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+#lsh.on{background:#111;color:#fff}
+#lsh svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#sheet:not(.ly) #lsh{display:none}
+/* la letra solo se mueve en vertical */
+#ly{overflow-x:hidden!important;overscroll-behavior-x:none;touch-action:pan-y}
+#ly p{box-sizing:border-box;max-width:93%;overflow-wrap:anywhere}
+#ly.sel p{padding:4px 10px}
+#ly p.pk{margin-left:0!important;margin-right:0!important}
 #lsp{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:calc(env(safe-area-inset-top,0px) + 16px) 20px calc(env(safe-area-inset-bottom,0px) + 16px)}
 #lsp img{max-height:64vh;max-width:100%;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
 .lsc{display:flex;gap:8px}.lsc button{padding:9px 16px;border-radius:999px;background:rgba(255,255,255,.14);color:#fff;font-size:14px;font-weight:600}.lsc button.on{background:#fff;color:#000}
@@ -1004,20 +1016,21 @@ async function lrc(t){const nm=t.name,ar=String(t.artist).split(',')[0],d=(t.dur
  try{const r=await fetch('https://lrclib.net/api/search?'+new URLSearchParams({track_name:nm,artist_name:ar}));if(r.ok){const l=((await r.json())||[]).filter(x=>x&&(x.syncedLyrics||x.plainLyrics)&&(!d||Math.abs((x.duration||0)-d)<8)),j=l.find(x=>x.syncedLyrics)||l[0];if(j)return{s:j.syncedLyrics,p:j.plainLyrics}}}catch(e){}
  return null}
 let LL=[],LSEL=null;
-async function ly(t){const b=$('#ly');if(!t||!sheet.classList.contains('ly'))return;LA=-1;LN=[];if(LSEL&&LL.t!==t.id)endSel();
+async function ly(t){const b=$('#ly');if(!t||!sheet.classList.contains('ly'))return;LA=-1;LN=[];$('#lsh').hidden=true;if(LSEL&&LL.t!==t.id)endSel();
  if(!LC.has(t.id)){b.innerHTML='<p>…</p>';LC.set(t.id,await lrc(t))}
  if(!P.t||P.t.id!==t.id)return;const d=LC.get(t.id);let plain=[];
  if(d&&d.s)d.s.split('\n').forEach(l=>{const m=l.match(/^\[(\d+):(\d+(?:\.\d+)?)\](.*)/);if(m)LN.push([(+m[1]*60+ +m[2])*1000,m[3].trim()])});
  else if(d&&d.p)plain=d.p.split('\n');
- const lines=LN.length?LN.map(l=>l[1]):plain,en=lines.length>0&&isEn(lines.join(' '));LL=lines.slice();LL.t=t.id;
+ const lines=LN.length?LN.map(l=>l[1]):plain,en=lines.length>0&&isEn(lines.join(' '));LL=lines.slice();LL.t=t.id;$('#lsh').hidden=!lines.length;
  const draw=T=>{const tl=i=>TRON&&T&&T[i]?`<small class="tr">${esc(T[i])}</small>`:'';
-  const head=lines.length?`<div class="trt">${en?`<button data-trt>${TRON?'Ocultar traducción':'Mostrar traducción'}</button>`:''}<button data-lshare>${LSEL?'Cancelar selección':'Compartir letra'}</button></div>`:'';
+  const head=en?`<div class="trt"><button data-trt>${TRON?'Ocultar traducción':'Mostrar traducción'}</button></div>`:'';
   b.innerHTML=head+(LN.length?LN.map((l,i)=>`<p data-ls="${l[0]}" data-li="${i}">${esc(l[1])||'♪'}${tl(i)}</p>`).join(''):plain.length?plain.map((l,i)=>`<p data-li="${i}" style="color:#fff;font-size:20px">${esc(l)}${tl(i)}</p>`).join(''):'<p>Sin letra para esta canción.</p>');LA=-1;if(LSEL)LSEL.forEach(i=>{const p=$('[data-li="'+i+'"]',b);p&&p.classList.add('pk')})};
  let T=en?ltGet(t.id):null;draw(T);
  if(en&&TRON&&!T){T=await trLines(lines);if(T)ltSet(t.id,T);if(!P.t||P.t.id!==t.id||!sheet.classList.contains('ly'))return;if(T)draw(T);else{const h=$('[data-trt]',b);if(h)h.textContent='No se pudo traducir · reintentar'}}}
 function syncLy(){if(!LN.length||!sheet.classList.contains('ly'))return;const n=now();let k=-1;for(let i=0;i<LN.length&&LN[i][0]<=n+250;i++)k=i;if(k===LA)return;LA=k;const ps=$$('#ly p'),b=$('#ly');ps.forEach((p,i)=>p.classList.toggle('on',i===k));if(ps[k])b.scrollTo({top:ps[k].offsetTop-b.clientHeight/3,behavior:'smooth'})}
 $('#lb').onclick=()=>{sheet.classList.remove('q');sheet.classList.toggle('ly');$('#lb').classList.toggle('on',sheet.classList.contains('ly'));paint();ly(P.t)};
-const lsLbl=()=>{const h=$('[data-lshare]');if(h)h.textContent=LSEL?'Cancelar selección':'Compartir letra'};
+const lsLbl=()=>{$('#lsh').classList.toggle('on',!!LSEL)};
+$('#lsh').onclick=()=>{LSEL?endSel():startSel()};
 const lsCount=()=>{const g=$('[data-lgo]');if(!g)return;const n=LSEL?LSEL.size:0;g.textContent=n?'Crear imagen · '+n:'Elige las líneas';g.disabled=!n};
 function endSel(){LSEL=null;$('#ly').classList.remove('sel');$$('#ly p.pk').forEach(p=>p.classList.remove('pk'));$('#lsb').classList.remove('on');lsLbl()}
 function startSel(){if(!LL.length){toast('Esta canción no tiene letra');return}LSEL=new Set();$('#ly').classList.add('sel');$('#lsb').classList.add('on');lsCount();lsLbl();toast('Toca las líneas que quieras compartir')}
@@ -1051,7 +1064,7 @@ async function lyricShare(t,lines){
   if(e.target.closest('[data-sh]')&&blob){const f=new File([blob],'q-music-letra.png',{type:'image/png'});
    try{if(navigator.canShare&&navigator.canShare({files:[f]}))await navigator.share({files:[f]});else{const a=document.createElement('a');a.href=url;a.download='q-music-letra.png';a.click()}}catch(er){if(er&&er.name!=='AbortError')toast('No se pudo compartir')}}};
  render()}
-$('#ly').onclick=e=>{if(e.target.closest('[data-lshare]')){LSEL?endSel():startSel();return}
+$('#ly').onclick=e=>{
  {const q=e.target.closest('[data-li]');if(LSEL&&q){const i=+q.dataset.li;if(LSEL.has(i)){LSEL.delete(i);q.classList.remove('pk')}else{if(!(LL[i]||'').trim())return;if(LSEL.size>=8){toast('Máximo 8 líneas');return}LSEL.add(i);q.classList.add('pk')}lsCount();return}}
  if(e.target.closest('[data-trt]')){const h=e.target.closest('[data-trt]');if(/reintentar/.test(h.textContent)){TRON=true}else TRON=!TRON;try{localStorage.setItem('qm.tr',TRON?'1':'0')}catch(_){}ly(P.t);return}const p=e.target.closest('[data-ls]');if(p&&P.t)doSeek(+p.dataset.ls)};
 /* Imagen 9:16 para Stories */
