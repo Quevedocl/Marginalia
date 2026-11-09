@@ -463,12 +463,40 @@ const vset=v=>{try{sp&&Promise.resolve(sp.setVolume(v)).catch(()=>{})}catch(e){}
 function ytCmd(f,a){const y=document.getElementById('yt-player');if(!y||!y.contentWindow)return false;try{y.contentWindow.postMessage(JSON.stringify({event:'command',func:f,args:a||[]}),'*');return true}catch(e){return false}}
 function ytStop(){const o=document.getElementById('yt-player');if(o){try{o.src='about:blank'}catch(e){}o.remove()}}
 let ytTry=0,ytSkips=0,lastEnd=0,lastVis=0;
-function ytPlay(t,alt){ytStop();if(!t)return;ytTry=alt||0;P.buf=true;const sfx=['',' audio',' topic'][ytTry]||'';
-  const y=document.createElement('iframe');y.id='yt-player';y.dataset.tid=t.id;
-  y.style='position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;';y.allow='autoplay; encrypted-media';
-  y.onload=()=>{const l=()=>{try{y.contentWindow.postMessage(JSON.stringify({event:'listening',id:'qm',channel:'widget'}),'*')}catch(e){}};l();setTimeout(l,400);setTimeout(l,1200);setTimeout(l,2500)};
-  y.src=`https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(t.name+' '+t.artist+sfx)}&autoplay=1&enablejsapi=1&playsinline=1&origin=${encodeURIComponent(location.origin)}`;document.body.appendChild(y)}
-function mq(el){if(!el)return;let s=el.firstElementChild&&el.firstElementChild.classList.contains('mq')?el.firstElementChild:null;
+function ytPlay(t,alt){
+  ytStop();
+  if(!t)return;
+  ytTry=alt||0;
+  P.buf=true;
+  const sfx=['',' audio',' topic'][ytTry]||'';
+  
+  const y=document.createElement('iframe');
+  y.id='yt-player';
+  y.dataset.tid=t.id;
+  // Permitimos el autoplay explícitamente en el iframe
+  y.allow='autoplay; encrypted-media; picture-in-picture';
+  y.style='position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;';
+  
+  y.onload=()=>{
+    const l=()=>{
+      try{
+        y.contentWindow.postMessage(JSON.stringify({event:'listening',id:'qm',channel:'widget'}),'*');
+        // Forzamos el play inmediatamente después de que carga el iframe
+        ytCmd('playVideo'); 
+      }catch(e){console.error('Error al enviar comando a YouTube', e)}
+    };
+    l();
+    setTimeout(l,400);
+    setTimeout(l,1200);
+    setTimeout(l,2500);
+  };
+  
+  // Añadimos parámetros para evitar el bloqueo del navegador
+  y.src=`https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(t.name+' '+t.artist+sfx)}&autoplay=1&enablejsapi=1&playsinline=1&origin=${encodeURIComponent(location.origin)}&mute=0`;
+  document.body.appendChild(y);
+}
+      
+      function mq(el){if(!el)return;let s=el.firstElementChild&&el.firstElementChild.classList.contains('mq')?el.firstElementChild:null;
   if(!s){s=document.createElement('span');s.className='mq';while(el.firstChild)s.appendChild(el.firstChild);el.appendChild(s)}
   el.classList.remove('mqo');s.style.removeProperty('--x');
   requestAnimationFrame(()=>{const o=s.offsetWidth-el.clientWidth;if(o>4){s.style.setProperty('--x',-(o+14)+'px');s.style.setProperty('--t',Math.max(6,o/20+3)+'s');el.classList.add('mqo')}})}
