@@ -463,39 +463,45 @@ const vset=v=>{try{sp&&Promise.resolve(sp.setVolume(v)).catch(()=>{})}catch(e){}
 function ytCmd(f,a){const y=document.getElementById('yt-player');if(!y||!y.contentWindow)return false;try{y.contentWindow.postMessage(JSON.stringify({event:'command',func:f,args:a||[]}),'*');return true}catch(e){return false}}
 function ytStop(){const o=document.getElementById('yt-player');if(o){try{o.src='about:blank'}catch(e){}o.remove()}}
 let ytTry=0,ytSkips=0,lastEnd=0,lastVis=0;
+/* ---- Respaldo YouTube (cuentas sin Premium) ----
+   YouTube eliminó hace años el embed por búsqueda (listType=search), por eso ya no sonaba nada.
+   Ahora se busca el video con la YouTube Data API v3 y se incrusta por ID. */
+const YT_KEY='PEGA_AQUI_TU_API_KEY';
+const ytCache=new Map();
+async function ytFind(t){
+  if(!ytCache.has(t.id)){
+    const u='https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=3&q='+encodeURIComponent(t.name+' '+t.artist)+'&key='+YT_KEY;
+    const r=await fetch(u);
+    if(!r.ok)throw new Error('YouTube API '+r.status);
+    const j=await r.json();
+    ytCache.set(t.id,(j.items||[]).map(i=>i.id&&i.id.videoId).filter(Boolean));
+  }
+  return ytCache.get(t.id);
+}
 function ytPlay(t,alt){
   ytStop();
   if(!t)return;
   ytTry=alt||0;
   P.buf=true;
-  
-  // Cambiamos "topic" por "lyric" y "pseudo video", ya que evaden mejor los bloqueos de copyright
-  const sfx=['',' audio',' lyric'][ytTry]||'';
-  
-  const y=document.createElement('iframe');
-  y.id='yt-player';
-  y.dataset.tid=t.id;
-  y.allow='autoplay; encrypted-media';
-  
-  // EL TRUCO: YouTube bloquea iframes de 1x1. 
-  // Le damos el tamaño mínimo requerido pero lo escondemos al fondo con z-index y casi transparente (0.01)
-  y.style='position:fixed; width:250px; height:250px; bottom:0; left:0; opacity:0.01; pointer-events:none; z-index:-9999; border:0;';
-  
-  y.onload=()=>{
-    const l=()=>{
-      try{
-        y.contentWindow.postMessage(JSON.stringify({event:'listening',id:'qm',channel:'widget'}),'*');
-        ytCmd('playVideo'); 
-      }catch(e){}
+  ytFind(t).then(ids=>{
+    if(!P.t||P.t.id!==t.id||document.getElementById('yt-player'))return;
+    const vid=ids[ytTry];
+    if(!vid){ytFail();return}
+    const y=document.createElement('iframe');
+    y.id='yt-player';
+    y.dataset.tid=t.id;
+    y.allow='autoplay; encrypted-media';
+    y.style='position:fixed; width:250px; height:250px; bottom:0; left:0; opacity:0.01; pointer-events:none; z-index:-9999; border:0;';
+    y.onload=()=>{
+      const l=()=>{try{y.contentWindow.postMessage(JSON.stringify({event:'listening',id:'qm',channel:'widget'}),'*');ytCmd('playVideo')}catch(e){}};
+      l();setTimeout(l,400);setTimeout(l,1200);setTimeout(l,2500);
     };
-    l();
-    setTimeout(l,400);
-    setTimeout(l,1200);
-    setTimeout(l,2500);
-  };
-  
-  y.src=`https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(t.name+' '+t.artist+sfx)}&autoplay=1&enablejsapi=1&playsinline=1&origin=${encodeURIComponent(location.origin)}&widgetid=1`;
-  document.body.appendChild(y);
+    y.src='https://www.youtube.com/embed/'+vid+'?autoplay=1&enablejsapi=1&playsinline=1&origin='+encodeURIComponent(location.origin);
+    document.body.appendChild(y);
+  }).catch(e=>{
+    P.buf=false;
+    toast(YT_KEY.startsWith('PEGA')?'Falta la API key de YouTube en index.html':'No se pudo buscar en YouTube');
+  });
 }
       
       function mq(el){if(!el)return;let s=el.firstElementChild&&el.firstElementChild.classList.contains('mq')?el.firstElementChild:null;
