@@ -1,12 +1,12 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8">
-<title>Q-Music</title>
+<title>QMusic</title>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Q-Music">
+<meta name="apple-mobile-web-app-title" content="QMusic">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="margen-icon-1024.png">
 <link rel="icon" href="margen-icon-1024.png">
@@ -101,7 +101,7 @@ input[type=range]:active::-webkit-slider-runnable-track{height:8px;border-radius
 :focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important}}
 
-/* ===== Q-Music · Gestural Glass ===== */
+/* ===== QMusic · Gestural Glass ===== */
 .tab,#push{padding-bottom:150px}
 #tabbar{position:fixed;z-index:6;left:50%;bottom:calc(env(safe-area-inset-bottom) + 10px);width:min(360px,calc(100% - 32px));transform:translateX(-50%);border-radius:30px;padding:7px 6px;gap:2px;background:rgba(255,255,255,.09);-webkit-backdrop-filter:blur(28px) saturate(190%);backdrop-filter:blur(28px) saturate(190%);border:.5px solid rgba(255,255,255,.22);box-shadow:0 12px 36px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.18);transition:transform .45s var(--ios),opacity .3s}
 #app.dh #tabbar{transform:translate(-50%,170%);opacity:0}
@@ -989,7 +989,7 @@ function drawStats(){
  $('#t-stats').innerHTML='<h1>Estadísticas</h1>'+(H.length?`<h2 style="margin-top:6px">Artista de la semana</h2><p style="font-size:28px;font-weight:700">${esc(tw.length?tw[0][0]:'—')}</p>
  <h2>Escucha · ${tot.toFixed(1)} h esta semana</h2><div class="bars">${days.map(x=>`<div><i style="height:${Math.max(3,x[1]/dm*100)}%"></i>${x[0]}</div>`).join('')}</div>
  <h2>Top del mes</h2>${tm.map(x=>`<div class="ta"><i style="width:${x[1]/mx*100}%"></i><b>${esc(x[0])}</b><span>${x[1]}</span></div>`).join('')}
- <h2>Historial</h2>${list(H.slice(0,100),'h')}`:'<div class="empty">Aún no hay historial. Reproduce algo y Q-Music lo guardará aquí, solo en tu dispositivo.</div>');
+ <h2>Historial</h2>${list(H.slice(0,100),'h')}`:'<div class="empty">Aún no hay historial. Reproduce algo y QMusic lo guardará aquí, solo en tu dispositivo.</div>');
 }
 /* Letras sincronizadas (LRCLIB) */
 const LC=new Map();let LN=[],LA=-1;
@@ -1050,7 +1050,7 @@ async function lyricBlob(t,lines,im,st){
  const h=out.length*px*1.22,top=560+(980-h)/2;
  g.textAlign='left';g.fillStyle=sb;g.globalAlpha=.4;g.font='700 220px '+F2;g.fillText('“',108,top+20);g.globalAlpha=1;
  g.font='700 '+px+'px '+F2;g.fillStyle=fg;out.forEach((l,i)=>g.fillText(l,120,top+px*(1.22*i+.95)));
- g.font='600 30px '+F;g.fillStyle=sb;g.textAlign='center';g.fillText('Q-MUSIC',540,1800);
+ g.font='600 30px '+F;g.fillStyle=sb;g.textAlign='center';g.fillText('QMUSIC',540,1800);
  return new Promise(r=>c.toBlob(r,'image/png'))}
 async function lyricShare(t,lines){
  toast('Creando imagen…');let im;
@@ -1061,8 +1061,8 @@ async function lyricShare(t,lines){
  const render=async()=>{blob=await lyricBlob(t,lines,im,st);if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(blob);img.src=url;$$('[data-s]',ov).forEach(b=>b.classList.toggle('on',+b.dataset.s===st))};
  ov.onclick=async e=>{const b=e.target.closest('[data-s]');if(b){st=+b.dataset.s;render();return}
   if(e.target.closest('[data-x]')||e.target===ov){ov.remove();if(url)URL.revokeObjectURL(url);return}
-  if(e.target.closest('[data-sh]')&&blob){const f=new File([blob],'q-music-letra.png',{type:'image/png'});
-   try{if(navigator.canShare&&navigator.canShare({files:[f]}))await navigator.share({files:[f]});else{const a=document.createElement('a');a.href=url;a.download='q-music-letra.png';a.click()}}catch(er){if(er&&er.name!=='AbortError')toast('No se pudo compartir')}}};
+  if(e.target.closest('[data-sh]')&&blob){const f=new File([blob],'qmusic-letra.png',{type:'image/png'});
+   try{if(navigator.canShare&&navigator.canShare({files:[f]}))await navigator.share({files:[f]});else{const a=document.createElement('a');a.href=url;a.download='qmusic-letra.png';a.click()}}catch(er){if(er&&er.name!=='AbortError')toast('No se pudo compartir')}}};
  render()}
 $('#ly').onclick=e=>{
  {const q=e.target.closest('[data-li]');if(LSEL&&q){const i=+q.dataset.li;if(LSEL.has(i)){LSEL.delete(i);q.classList.remove('pk')}else{if(!(LL[i]||'').trim())return;if(LSEL.size>=8){toast('Máximo 8 líneas');return}LSEL.add(i);q.classList.add('pk')}lsCount();return}}
@@ -1076,9 +1076,9 @@ async function story(t){toast('Creando imagen…');try{
  g.save();g.beginPath();g.roundRect(140,420,800,800,36);g.clip();g.drawImage(im,140,420,800,800);g.restore();
  const fit=(x,px,w,y,col)=>{g.font=w+' '+px+'px '+F;while(g.measureText(x).width>800&&px>28)g.font=w+' '+(--px)+'px '+F;g.fillStyle=col;g.fillText(x,140,y)};
  fit(t.name,66,700,1340,'#fff');fit(t.artist,44,500,1410,'rgba(255,255,255,.7)');
- g.font='600 34px '+F;g.fillStyle='rgba(255,255,255,.55)';g.textAlign='center';g.fillText('Q-Music',540,1780);
- const b=await new Promise(r=>c.toBlob(r,'image/png')),f=new File([b],'q-music-story.png',{type:'image/png'});
- if(navigator.canShare&&navigator.canShare({files:[f]}))await navigator.share({files:[f]});else{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='q-music-story.png';a.click()}
+ g.font='600 34px '+F;g.fillStyle='rgba(255,255,255,.55)';g.textAlign='center';g.fillText('QMusic',540,1780);
+ const b=await new Promise(r=>c.toBlob(r,'image/png')),f=new File([b],'qmusic-story.png',{type:'image/png'});
+ if(navigator.canShare&&navigator.canShare({files:[f]}))await navigator.share({files:[f]});else{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='qmusic-story.png';a.click()}
 }catch(e){if(!e||e.name!=='AbortError')toast('No se pudo crear la imagen')}}
 /* Dock flotante: se oculta al hacer scroll y reaparece al detenerte */
 (()=>{const A=$('#app'),y=new WeakMap();let t;document.addEventListener('scroll',e=>{const s=e.target;if(!s.classList||!(s.classList.contains('tab')||s.id==='push'))return;const v=s.scrollTop;if(s.classList.contains('tab'))hdr(s,v);if(v<0||v>s.scrollHeight-s.clientHeight+1)return;const d=v-(y.get(s)||0);y.set(s,v);if(d>6&&v>40)A.classList.add('dh');else if(d<-6)A.classList.remove('dh');clearTimeout(t);t=setTimeout(()=>A.classList.remove('dh'),700)},true)})();
@@ -1195,7 +1195,7 @@ function ask(title,ph,okText){return new Promise(res=>{
  const done=v=>{o.remove();res(v)};
  o.addEventListener('click',e=>{if(e.target===o||e.target.closest('[data-x]'))done(null);else if(e.target.closest('[data-ok]'))done(inp.value.trim()||null)});
  inp.addEventListener('keydown',e=>{if(e.key==='Enter')done(inp.value.trim()||null)})})}
-async function mkList(name){const body=JSON.stringify({name,public:false,description:'Creada en Q-Music'});
+async function mkList(name){const body=JSON.stringify({name,public:false,description:'Creada en QMusic'});
  try{return await api('/me/playlists',{method:'POST',body})}catch(e){if(e&&(e.status===404||e.status===405)){const u=await getMe();return api('/users/'+u.id+'/playlists',{method:'POST',body})}throw e}}
 async function addTo(id,t){const body=JSON.stringify({uris:[t.uri]});
  try{await api('/playlists/'+id+'/items',{method:'POST',body})}catch(e){await api('/playlists/'+id+'/tracks',{method:'POST',body})}}
@@ -1344,7 +1344,7 @@ function editProfile(){
   [ni,bi].forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')save()}))}
 
 /* ---------- Arranque ---------- */
-function connectScreen(msg){$('#t-home').innerHTML=`<div class="empty"><h1>Q-Music</h1><p>${esc(msg||'Tu música de Spotify, con una interfaz pensada para iPhone. Requiere Spotify Premium.')}</p><button class="cn" data-connect>Conectar con Spotify</button>${/iP(hone|ad)/.test(navigator.userAgent)&&!navigator.standalone?'<p style="margin-top:18px;font-size:13px">Para verla a pantalla completa: Compartir → Agregar a inicio y deja activado «Abrir como app web».</p>':''}</div>`}
+function connectScreen(msg){$('#t-home').innerHTML=`<div class="empty"><h1>QMusic</h1><p>${esc(msg||'Tu música de Spotify, con una interfaz pensada para iPhone. Requiere Spotify Premium.')}</p><button class="cn" data-connect>Conectar con Spotify</button>${/iP(hone|ad)/.test(navigator.userAgent)&&!navigator.standalone?'<p style="margin-top:18px;font-size:13px">Para verla a pantalla completa: Compartir → Agregar a inicio y deja activado «Abrir como app web».</p>':''}</div>`}
 
 /* ---- Spotify Connect (para iPhone/WKWebView, donde el SDK web no funciona) ----
    Se maneja la app de Spotify del teléfono mediante la Web API y se imita la interfaz del SDK. */
@@ -1365,7 +1365,7 @@ async function findDevice(force){
   if(spSdk&&sdkDev&&!force){sp=spSdk;dev=sdkDev;return}
   try{
     const r=await api('/me/player/devices');
-    const l=(r&&r.devices||[]).filter(d=>d.id&&!d.is_restricted&&d.name!=='Q-Music');
+    const l=(r&&r.devices||[]).filter(d=>d.id&&!d.is_restricted&&d.name!=='QMusic');
     const d=l.find(x=>x.is_active)||l.find(x=>/smartphone/i.test(x.type))||l[0];
     if(d){spConn=spConn||mkConn();sp=spConn;dev=d.id;return}
   }catch(e){}
@@ -1373,7 +1373,7 @@ async function findDevice(force){
 }
 function startPlayer(){
   window.onSpotifyWebPlaybackSDKReady=()=>{
-    spSdk=new Spotify.Player({name:'Q-Music',getOAuthToken:cb=>token().then(cb),volume:1});
+    spSdk=new Spotify.Player({name:'QMusic',getOAuthToken:cb=>token().then(cb),volume:1});
     sp=sp||spSdk;
     spSdk.addListener('ready',({device_id})=>{sdkDev=device_id;if(!dev){sp=spSdk;dev=device_id}api('/me/player',{method:'PUT',body:JSON.stringify({device_ids:[device_id],play:false})}).catch(()=>{})});
     spSdk.addListener('not_ready',()=>{sdkDev='';if(sp===spSdk)dev=''});
@@ -1404,7 +1404,7 @@ async function go(){const c=jl('qm.c',null);if(c){D.liked=c.l;D.total=c.n;D.pl=c
 async function init(){
   const code=new URLSearchParams(location.search).get('code');
   if(code){history.replaceState(null,'',RED);try{saveTok(await tokReq({grant_type:'authorization_code',code,redirect_uri:RED,code_verifier:localStorage.getItem('marginalia.pkce')}))}catch(e){connectScreen('No se pudo conectar con Spotify. Inténtalo otra vez.');return}}
-  if(tok()&&localStorage.getItem('margen.sc')!==SC){localStorage.removeItem(TK);connectScreen('Q-Music ahora necesita permisos nuevos (crear listas y cambiar su portada). Vuelve a conectar tu cuenta.');return}
+  if(tok()&&localStorage.getItem('margen.sc')!==SC){localStorage.removeItem(TK);connectScreen('QMusic ahora necesita permisos nuevos (crear listas y cambiar su portada). Vuelve a conectar tu cuenta.');return}
   if(!tok()){connectScreen();return}
   try{await go()}catch(e){
     if(jl('qm.c',null)&&!(e&&(e.status===401||e.status===403))){OFFSTART=true;$('#app').classList.remove('off');netUi();toast('Sin conexión: mostrando tu biblioteca guardada');getMe().catch(()=>{})}
