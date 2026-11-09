@@ -342,7 +342,7 @@ html.sa #app,html.sa #sheet,html.sa #menu{height:var(--vh);top:0;bottom:auto}
   <div class="nph"><div class="m"><b id="np-t"></b><span id="np-a"></span></div><div class="eq"><i></i><i></i><i></i><i></i></div><button class="rb" id="np-like" aria-label="Favoritos"></button><button class="rb" id="np-more" aria-label="Más opciones"></button></div>
   <div class="sc"><input id="seek" type="range" min="0" max="1000" value="0" aria-label="Posición"><div class="tm"><span id="el">0:00</span><span id="rm">-0:00</span></div></div>
   <div class="tp"><button class="ic" id="prev" aria-label="Anterior"></button><button class="ic big" id="pp" aria-label="Reproducir"></button><button class="ic" id="next" aria-label="Siguiente"></button></div>
-  <div class="ex"><button class="t" id="shuf" aria-label="Aleatorio"></button><svg viewBox="0 0 24 24" class="f" style="color:var(--l2)"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/></svg><input id="vol" type="range" min="0" max="100" value="100" aria-label="Volumen"><button class="t" id="rep" aria-label="Repetir"></button><button class="t" id="lb" aria-label="Letra"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 11h16M4 16h9"/></svg></button><button class="t" id="qb" aria-label="Cola"></button></div>
+  <div class="ex"><button class="t" id="shuf" aria-label="Aleatorio"></button><button class="t" id="rep" aria-label="Repetir"></button><button class="t" id="dv" aria-label="Dispositivos"><svg viewBox="0 0 24 24"><rect x="6.5" y="3.5" width="11" height="17" rx="2.5"/><circle cx="12" cy="14.5" r="3"/><circle cx="12" cy="7.5" r=".9"/></svg></button><button class="t" id="lb" aria-label="Letra"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 11h16M4 16h9"/></svg></button><button class="t" id="qb" aria-label="Cola"></button></div>
 </section>
 
 <div id="menu"><div id="mc"></div></div>
@@ -387,7 +387,7 @@ img{-webkit-user-drag:none}
 .tp{-webkit-backdrop-filter:blur(12px)!important;backdrop-filter:blur(12px)!important}
 #sheet:not(.open) *{animation:none!important}
 input,textarea{-webkit-user-select:text!important;user-select:text!important}
-#seek,#vol{touch-action:none}
+#seek{touch-action:none}
 #pp,#prev,#next,[data-pp],[data-nx]{transition:opacity .2s,background .2s!important}
 #pp:active,#prev:active,#next:active,[data-pp]:active,[data-nx]:active{transform:none!important}
 .pop svg{animation:none!important}
@@ -447,6 +447,8 @@ p.pb{color:var(--l2);font-size:15px;margin:12px 0 0;line-height:1.4}
 .pst div{padding:14px 2px;border:1px solid var(--sep);border-radius:16px;text-align:center}
 .pst b{display:block;font:700 22px var(--ser)}.pst span{font-size:11px;color:var(--l2)}
 .plo{margin-top:26px;width:100%;flex:none}
+
+.ex{justify-content:space-between}
 </style>
 <script>
 (()=>{'use strict';
@@ -899,15 +901,7 @@ function commitSeek(){if(!P.t||!scrub)return;const p=seek.value/1000*(P.t.dur||0
 ['pointerup','touchend','pointercancel','touchcancel'].forEach(ev=>addEventListener(ev,()=>{if(scrub)setTimeout(commitSeek,40)},true));
 seek.onchange=commitSeek;
 ['pointerup','touchend','pointercancel','touchcancel'].forEach(ev=>seek.addEventListener(ev,()=>setTimeout(commitSeek,40)));
-const vl=$('#vol');let vPrev=70;
-vl.oninput=()=>{hp();vl.style.setProperty('--p',vl.value+'%');
-  {const nb=window.webkit&&webkit.messageHandlers&&webkit.messageHandlers.qmVol;if(nb){try{nb.postMessage({v:vl.value/100})}catch(e){}return}}
-  vol=vl.value/100;ytCmd('setVolume',[vol*100]);sp&&sp.setVolume(vol)};
-window.qmSysVol=v=>{if(vl.dataset.drag)return;vl.value=Math.round(v*100);vl.style.setProperty('--p',vl.value+'%')};
-['pointerdown','touchstart'].forEach(ev=>vl.addEventListener(ev,()=>{vl.dataset.drag=1},{passive:true}));
-['pointerup','touchend','pointercancel','touchcancel'].forEach(ev=>vl.addEventListener(ev,()=>setTimeout(()=>{delete vl.dataset.drag},600)));
-{const ic=document.querySelector('.ex svg.f');if(ic){ic.style.pointerEvents='auto';ic.addEventListener('click',()=>{if(+vl.value>0){vPrev=+vl.value;vl.value=0}else vl.value=vPrev||60;vl.dispatchEvent(new Event('input'))})}}
-vl.style.setProperty('--p','100%');
+window.qmSysVol=()=>{};
 /* Arrastrar hacia abajo para cerrar */
 (()=>{let y0=null;const tp=$('#top');
  tp.addEventListener('pointerdown',e=>{y0=e.clientY;tp.setPointerCapture(e.pointerId);sheet.style.transition='none'});
@@ -1044,6 +1038,23 @@ let hl=0;const hp=()=>{const n=performance.now();if(n-hl>70){hl=n;navigator.vibr
 function hdr(s,v){const h=s.querySelector('h1');if(!h)return;const k=Math.min(1,Math.max(0,v/56)),b=$('#hb');h.style.transformOrigin='left';h.style.opacity=1-k;h.style.transform=`translateY(${-k*12}px) scale(${1-.12*k})`;b.textContent=h.textContent;b.style.opacity=k}
 const SKR=n=>'<div class="skl">'+'<div class="skr"><div class="sk" style="width:50px;height:50px;border-radius:12px"></div><div style="flex:1"><div class="sk" style="height:14px;width:60%;margin:6px 0"></div><div class="sk" style="height:12px;width:35%"></div></div></div>'.repeat(n)+'</div>';
 const SK='<div id="sk"><div class="sk" style="width:100%;aspect-ratio:1;border-radius:28px;margin:6px 0 18px"></div>'+SKR(6)+'</div>';
+async function useDevice(id){
+  const was=dev;
+  try{
+    await api('/me/player',{method:'PUT',body:JSON.stringify({device_ids:[id],play:!!P.playing})});
+    sp=(id===sdkDev&&spSdk)?spSdk:(spConn=spConn||mkConn());dev=id;
+    if(!was){ytStop();if(P.t)await api('/me/player/play?device_id='+id,{method:'PUT',body:JSON.stringify({uris:[P.t.uri],position_ms:Math.round(now())})}).catch(()=>{})}
+    toast('Reproduciendo en el dispositivo elegido')
+  }catch(e){toast('No se pudo cambiar de dispositivo. Abre la app de Spotify en ese equipo')}}
+async function devMenu(){
+  if(PREM===false){toast('Los dispositivos de Spotify requieren Premium');return}
+  const M=$('#menu'),mc=$('#mc'),hd=t=>`<div class="hd"><div class="m"><b>Reproducir en</b><span>${t}</span></div></div>`;
+  mc.innerHTML=hd('Buscando dispositivos…');mc.onclick=null;M.classList.add('open');
+  let l=[];try{l=((await api('/me/player/devices'))||{}).devices||[]}catch(e){}
+  l=l.filter(d=>d.id&&!d.is_restricted);
+  mc.innerHTML=hd(l.length?'Elige dónde suena Spotify':'No hay dispositivos. Abre la app de Spotify e inténtalo otra vez')+l.map(d=>`<button class="mi" data-dv="${esc(d.id)}">${esc(d.name)}<span style="color:var(--l2);font-size:13px">${d.id===dev?'Actual':esc(d.type||'')}</span></button>`).join('');
+  mc.onclick=e=>{const b=e.target.closest('[data-dv]');if(!b)return;M.classList.remove('open');useDevice(b.dataset.dv)}}
+$('#dv').onclick=devMenu;
 let SL=null;
 function sleepMenu(){const M=$('#menu'),mc=$('#mc');mc.innerHTML=`<div class="hd"><div class="m"><b>Temporizador de apagado</b><span>${SL?'Activo':'La música se pausará sola'}</span></div></div>`+[[15,'15 minutos'],[30,'30 minutos'],[45,'45 minutos'],[0,'Al terminar esta canción']].map(o=>`<button class="mi" data-z="${o[0]}">${o[1]}</button>`).join('')+(SL?'<button class="mi" data-z="x">Cancelar temporizador</button>':'');
  mc.onclick=e=>{const b=e.target.closest('[data-z]');if(!b)return;M.classList.remove('open');setSleep(b.dataset.z)};M.classList.add('open')}
