@@ -468,22 +468,25 @@ function ytPlay(t,alt){
   if(!t)return;
   ytTry=alt||0;
   P.buf=true;
-  const sfx=['',' audio',' topic'][ytTry]||'';
+  
+  // Cambiamos "topic" por "lyric" y "pseudo video", ya que evaden mejor los bloqueos de copyright
+  const sfx=['',' audio',' lyric'][ytTry]||'';
   
   const y=document.createElement('iframe');
   y.id='yt-player';
   y.dataset.tid=t.id;
-  // Permitimos el autoplay explícitamente en el iframe
-  y.allow='autoplay; encrypted-media; picture-in-picture';
-  y.style='position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;';
+  y.allow='autoplay; encrypted-media';
+  
+  // EL TRUCO: YouTube bloquea iframes de 1x1. 
+  // Le damos el tamaño mínimo requerido pero lo escondemos al fondo con z-index y casi transparente (0.01)
+  y.style='position:fixed; width:250px; height:250px; bottom:0; left:0; opacity:0.01; pointer-events:none; z-index:-9999; border:0;';
   
   y.onload=()=>{
     const l=()=>{
       try{
         y.contentWindow.postMessage(JSON.stringify({event:'listening',id:'qm',channel:'widget'}),'*');
-        // Forzamos el play inmediatamente después de que carga el iframe
         ytCmd('playVideo'); 
-      }catch(e){console.error('Error al enviar comando a YouTube', e)}
+      }catch(e){}
     };
     l();
     setTimeout(l,400);
@@ -491,8 +494,7 @@ function ytPlay(t,alt){
     setTimeout(l,2500);
   };
   
-  // Añadimos parámetros para evitar el bloqueo del navegador
-  y.src=`https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(t.name+' '+t.artist+sfx)}&autoplay=1&enablejsapi=1&playsinline=1&origin=${encodeURIComponent(location.origin)}&mute=0`;
+  y.src=`https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(t.name+' '+t.artist+sfx)}&autoplay=1&enablejsapi=1&playsinline=1&origin=${encodeURIComponent(location.origin)}&widgetid=1`;
   document.body.appendChild(y);
 }
       
